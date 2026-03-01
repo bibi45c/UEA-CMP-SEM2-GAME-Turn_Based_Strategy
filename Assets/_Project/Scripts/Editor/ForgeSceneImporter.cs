@@ -14,7 +14,7 @@ namespace TurnBasedTactics.Editor
     /// </summary>
     public static class ForgeSceneImporter
     {
-        private const string ForgeScenePath = "Assets/PolygonDungeonRealms/Scenes/Demo_Forge_01.unity";
+        private const string ForgeScenePath = "Assets/ThirdParty/PolygonDungeonRealms/Scenes/Demo_Forge_01.unity";
 
         [MenuItem("Tools/Import Forge Demo")]
         public static void ImportForgeDemo()
