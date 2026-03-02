@@ -9,7 +9,7 @@ Read this file before making any changes.
 
 - **Project**: Turn-Based Tactical RPG (hex grid, DOS2/BG3 inspired)
 - **Engine**: Unity 6000.3.6f1 (Unity 6)
-- **Render Pipeline**: URP (Universal Render Pipeline)
+- **Render Pipeline**: Built-in Render Pipeline (with ShaderGraph 17.3.0)
 - **Language**: C# (.NET Standard 2.1 / Unity subset)
 - **Input**: Unity Input System 1.18.0
 - **UI**: uGUI (com.unity.ugui 2.0.0)
@@ -21,6 +21,7 @@ Read this file before making any changes.
 
 - `GameOutline.md` — Active game design outline, system architecture, and design decisions
 - `GameInfo.md` — Original project blueprint (bilingual EN/CN), phase planning, module map
+- `AssetInventory.md` — Complete inventory of all third-party and project assets
 
 Always read `GameOutline.md` first for the latest design decisions.
 
