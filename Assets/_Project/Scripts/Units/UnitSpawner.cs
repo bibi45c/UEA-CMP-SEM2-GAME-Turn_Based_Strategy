@@ -50,6 +50,43 @@ namespace TurnBasedTactics.Units
         }
 
         /// <summary>
+        /// Play a death animation on the unit, then destroy the GameObject.
+        /// Calls onComplete after the GO is destroyed.
+        /// </summary>
+        public void DespawnWithDeathAnimation(int unitId, System.Action onComplete = null)
+        {
+            if (!_brainLookup.TryGetValue(unitId, out UnitBrain brain))
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            _brainLookup.Remove(unitId);
+
+            if (brain == null)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            var visual = brain.GetComponent<UnitVisual>();
+            if (visual != null)
+            {
+                visual.PlayDeathAnimation(() =>
+                {
+                    if (brain != null)
+                        Destroy(brain.gameObject);
+                    onComplete?.Invoke();
+                });
+            }
+            else
+            {
+                Destroy(brain.gameObject);
+                onComplete?.Invoke();
+            }
+        }
+
+        /// <summary>
         /// Spawn a unit on the grid at the specified hex position.
         /// Creates GO, wires all components, sets grid occupancy.
         /// </summary>

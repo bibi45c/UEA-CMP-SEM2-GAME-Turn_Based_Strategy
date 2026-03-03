@@ -1,4 +1,5 @@
 using UnityEngine;
+using TurnBasedTactics.Abilities;
 
 namespace TurnBasedTactics.Units
 {
@@ -36,8 +37,11 @@ namespace TurnBasedTactics.Units
 
         [Header("Combat")]
         [SerializeField] private int _baseMovementPoints = 4;
-        [SerializeField] private int _baseActionPoints = 1;
+        [SerializeField] private int _baseActionPoints = 6;
         [SerializeField] private int _level = 1;
+
+        [Header("Abilities")]
+        [SerializeField] private AbilityDefinition[] _abilities;
 
         // --- Public API (read-only) ---
 
@@ -59,6 +63,7 @@ namespace TurnBasedTactics.Units
         public int BaseMovementPoints => _baseMovementPoints;
         public int BaseActionPoints => _baseActionPoints;
         public int Level => _level;
+        public AbilityDefinition[] Abilities => _abilities;
 
         private void OnValidate()
         {
@@ -68,7 +73,7 @@ namespace TurnBasedTactics.Units
             _constitution = Mathf.Max(1, _constitution);
             _wits = Mathf.Max(1, _wits);
             _baseMovementPoints = Mathf.Clamp(_baseMovementPoints, 1, 20);
-            _baseActionPoints = Mathf.Clamp(_baseActionPoints, 1, 5);
+            _baseActionPoints = Mathf.Clamp(_baseActionPoints, 1, 20);
             _level = Mathf.Max(1, _level);
         }
     }

@@ -11,6 +11,179 @@ without diffing code.
 
 ---
 
+## 2026-03-03 (Session 9) — Line of Sight & DOS2 AP System
+
+### Completed (Line of Sight)
+- **HasLineOfSight()** — Static method in `CoverResolver` that validates ranged ability line of sight. Walks hex line from attacker to target via `HexCoord.LineTo()`, checking intervening cells for FullCover obstacles. Melee (range ≤ 1) always has LoS. Height bypass: attacker above blocking cell can see over FullCover.
+- **AbilityExecutor LoS validation** — After range check, before target collection, LoS is verified. Returns `AbilityResult.Fail("No line of sight to target.")` if blocked.
+- **AI LoS filter** — `AIBrain.FindAttackableTarget()` skips enemies behind FullCover obstacles when evaluating attack targets.
+
+### Completed (DOS2 AP System)
+- **AP pool replaces boolean actions** — `UnitRuntime` now tracks `MaxAP`/`CurrentAP` (default 6) instead of `HasMovedThisTurn`/`HasActedThisTurn`. Movement costs 1 AP per hex traversed. Abilities cost variable AP (BasicAttack=2, BasicHeal=2, FireBolt=3). Units can move+attack+move in same turn if AP permits.
+- **ActionSystem rewrite** — New AP-aware methods: `CanUseAbility(unit, ability)`, `SpendMoveAP(unit, hexCount)`, `SpendAbilityAP(unit, ability)`, `IsTurnComplete(unit)`.
+- **Movement range shrinks with AP** — `MovementRangeVisualizer` uses `Mathf.Min(MovementPoints, CurrentAP)` as effective movement range. As AP is spent, reachable area dynamically shrinks.
+- **AI AP budgeting** — `AIBrain` reserves AP for ability before spending on movement: `apAvailableForMove = CurrentAP - abilityCost`. No AP wasted when already in range or staying still.
+- **HUD AP display** — Title shows "Active Unit: {name} | AP: X/Y". Move button shows "Move (1)". Ability buttons show cost: "Attack (2)", "Fire Bolt (3)". Per-ability `CanUseAbility()` check grays out buttons individually when AP insufficient.
+- **ScriptableObject data** — All 5 unit assets set to `_baseActionPoints = 6`. Ability costs: BasicAttack=2, BasicHeal=2, FireBolt=3.
+
+### Files Modified This Session
+- `Scripts/Grid/CoverResolver.cs` — Added `HasLineOfSight()` static method
+- `Scripts/Abilities/AbilityExecutor.cs` — Added LoS validation before target collection
+- `Scripts/AI/AIBrain.cs` — LoS filter in `FindAttackableTarget()` + complete AP-aware rewrite of `ExecuteTurnCoroutine()`, `ExecuteMove()`, `ExecuteAttack()`
+- `Scripts/Units/UnitEvents.cs` — Added `HexesMoved` field to `UnitMoveCompletedEvent`
+- `Scripts/Units/UnitDefinition.cs` — Default `_baseActionPoints = 6`, clamp range 1-20
+- `Scripts/Units/UnitRuntime.cs` — Replaced boolean action tracking with AP pool (`MaxAP`, `CurrentAP`, `HasEnoughAP()`, `SpendAP()`, `ResetAP()`)
+- `Scripts/Combat/ActionSystem.cs` — Complete rewrite: AP-aware `CanUseAbility()`, `SpendMoveAP()`, `SpendAbilityAP()`
+- `Scripts/Combat/CombatSceneController.cs` — `QueueAbility()` validates AP, `ExecuteAbility()` uses `SpendAbilityAP()`, `OnUnitMoveCompleted()` uses `SpendMoveAP(unit, evt.HexesMoved)`
+- `Scripts/Units/UnitMovementSystem.cs` — Tracks `_lastHexesMoved = path.Count - 1`, includes in move completed event
+- `Scripts/Units/MovementRangeVisualizer.cs` — Effective range = `Mathf.Min(MovementPoints, CurrentAP)`
+- `Scripts/UI/CombatHudController.cs` — AP display in title, per-ability cost labels, per-ability `CanUseAbility()` check
+- `Scripts/Core/GameBootstrap.cs` — Added `FaceUnitsTowardEnemies()` (units face opposing team at spawn)
+- `Data/Units/*.asset` — All 5 units: `_baseActionPoints = 6`
+- `Data/Abilities/BasicAttack.asset` — `_apCost = 2`
+- `Data/Abilities/BasicHeal.asset` — `_apCost = 2`
+- `Data/Abilities/FireBolt.asset` — `_apCost = 3`
+
+### Key Technical Details
+- **AP formula**: 6 AP/turn default. Move = 1 AP/hex. BasicAttack = 2 AP. BasicHeal = 2 AP. FireBolt = 3 AP. Example turn: Move 3 hexes (3 AP) → Attack (2 AP) → 1 AP left.
+- **AI budget**: `apReservedForAbility = ability.ApCost`, `apAvailableForMove = CurrentAP - apReservedForAbility`, `moveRange = Min(MovementPoints, apAvailableForMove)`.
+- **LoS algorithm**: `attacker.LineTo(target)` returns hex line. Skip endpoints, check intervening cells. FullCover blocks LoS unless attacker's `HeightLevel > cell.HeightLevel`.
+- **Backwards compatibility**: `ResetTurnActions()` wrapper in `UnitRuntime` calls `ResetAP()`, so `TurnManager` unchanged.
+
+---
+
+## 2026-03-03 (Session 8) — Death Animation, Status Effects, Surface System & Cover System
+
+### Completed (Cover System)
+- **Cover System** — Directional cover that reduces or blocks ranged damage. `CoverResolver` (static utility) traces hex line from attacker to target via `HexCoord.LineTo()`, checks intervening cells for cover, returns the highest `CoverType` found. Height bypass: attacker above target downgrades cover by one tier.
+- **Cover damage integration** — `DamageResolver.ResolveAbilityDamage()` now accepts `CoverType` and `isRanged` parameters. HalfCover reduces damage by 25%, FullCover blocks ranged attacks entirely (returns 0 damage with `WasBlockedByCover` flag). Melee attacks (range ≤ 1) ignore cover completely. Backwards-compatible overload preserved.
+- **AbilityExecutor cover wiring** — Before each damage effect, computes `CoverResolver.GetCoverBetween()` and passes cover data to `DamageResolver`. `AbilityResult` now carries `WasBlockedByCover` flag for UI feedback.
+- **CoverSetup** — MonoBehaviour for manual cover placement via serialized `CoverEntry[]` array (Q, R, CoverType). Applied to grid during `GameBootstrap.InitializeGrid()` after `HexGridMap.Initialize()`.
+- **CoverVisualizer** — Renders colored diamond markers on cover cells. Yellow for HalfCover, blue for FullCover. Uses vertex-colored mesh with `Sprites/Default` shader, same pattern as SurfaceVisualizer.
+- **Test cover entries** — 3 cover cells placed between player spawn (40-42, 40) and enemy spawn (40-42, 45): 2 HalfCover + 1 FullCover.
+
+### Files Created (Cover System)
+- `Scripts/Grid/CoverResolver.cs` — Static utility: `GetCoverBetween()`, `IsRangedAttack()`, `GetDamageMultiplier()`
+- `Scripts/Grid/CoverSetup.cs` — Manual cover cell assignment + `CoverEntry` struct
+- `Scripts/Grid/CoverVisualizer.cs` — Diamond marker rendering for cover cells
+
+### Files Modified (Cover System)
+- `Scripts/Combat/DamageResolver.cs` — Added cover parameters to `ResolveAbilityDamage()`, `DamageResult` gains `WasBlockedByCover` field
+- `Scripts/Abilities/AbilityExecutor.cs` — Pre-computes cover per target, passes to DamageResolver, tracks `anyBlocked`
+- `Scripts/Abilities/AbilityResult.cs` — Added `WasBlockedByCover` field
+- `Scripts/Core/GameBootstrap.cs` — Added `CoverSetup.Initialize()` and `CoverVisualizer.Initialize()` in grid init
+
+---
+
+## 2026-03-03 (Session 8) — Death Animation, Status Effects & Surface System
+
+### Completed
+- **Death Animation** — Units no longer vanish instantly on kill. `UnitVisual.PlayDeathAnimation()` plays a death sequence: triggers "Death" animator parameter (if present), fades out all renderers by switching materials to transparent mode and lerping alpha → 0, sinks the unit 0.3m into the ground over 1.2s. `UnitSpawner.DespawnWithDeathAnimation()` orchestrates the visual, then destroys the GameObject. Grid occupancy and registry removal still happen immediately (gameplay unblocked), only the visual persists for the animation duration.
+- **Status Effects System** — Full implementation with `StatusDefinition` (SO), `StatusInstance` (runtime), and `StatusManager` (service). Supports per-turn tick damage/healing, stat modifiers (STR/FIN/INT/CON/WIT/MOV), movement/action prevention flags, stackable vs refresh-on-duplicate behavior, and automatic buff recalculation through `UnitStats.SetBuffBonuses()`.
+- **StatusManager integration** — Created and owned by `CombatSceneController`. Injected into `AbilityExecutor` via `SetStatusManager()`. Status ticks processed at the start of every unit's turn in `OnTurnStarted()`, publishing damage/heal events. Statuses cleared on death. Status tick kills trigger `HandleUnitDeath()`.
+- **AbilityExecutor ApplyStatus** — The placeholder `ApplyStatus` case now calls `_statusManager.ApplyStatus()` with the referenced `StatusDefinition` SO from `EffectPayload.StatusToApply`.
+- **FireBolt → Burning** — FireBolt ability now has a second effect: `ApplyStatus → Burning`. Hitting an enemy with Fire Bolt deals magic damage AND sets them ablaze (3 fire damage/turn for 3 turns, ignores armor).
+- **2 status assets** — Burning (3 fire dmg/turn, 3 turns, ignores armor), Frozen (2 ice dmg/turn, 2 turns, prevents movement+actions, -3 FIN).
+- **Surface System** — Persistent environmental effects on hex cells. `SurfaceDefinition` (SO) defines surface properties (type, duration, tick damage, element, on-enter status, movement cost modifier). `SurfaceInstance` tracks runtime state per cell. `SurfaceSystem` (plain C# service) manages all active surfaces with creation, removal, round-end ticking, and on-enter effects (damage + status application).
+- **Surface Reactions** — Static lookup table `Dictionary<(SurfaceType, SurfaceType), SurfaceReaction>`. Implemented reactions: Fire+Oil→Fire(spreads), Fire+Ice→Water, Fire+Water→None(steam), Poison+Fire→Fire(spreads), Water+Electricity→Electricity(spreads), Ice+Fire→Water. Chain reactions spread to neighbors via deferred `_pendingCreations` list (bounded to one level to prevent infinite loops).
+- **SurfaceVisualizer** — MonoBehaviour attached to GridSystem GO. Renders colored hex fill overlays for cells with active surfaces using vertex colors and `Sprites/Default` shader. Rebuilds mesh when `SurfaceSystem.IsDirty` flag is set. Edge alpha fade for visual polish.
+- **CreateSurface ability effect** — Added `CreateSurface` to `AbilityEffectType` enum and `SurfaceToCreate` field to `EffectPayload`. `AbilityExecutor` handles the new case by calling `_surfaceSystem.CreateSurface()`.
+- **FireBolt → Fire Surface** — FireBolt now has a third effect: `CreateSurface → FireSurface`. Hitting an enemy with Fire Bolt deals magic damage + applies Burning status + creates a fire surface on the target's cell.
+- **4 surface assets** — FireSurface (2 fire dmg/turn, 3 rounds, applies Burning on enter), OilSurface (5 rounds, +0.5 move cost, ignites with fire), PoisonSurface (2 poison dmg/turn, 4 rounds), IceSurface (3 rounds, -0.3 move cost, applies Frozen on enter).
+
+### Files Created This Session
+- `Scripts/Abilities/StatusDefinition.cs` — SO for status effect data (identity, duration, tick damage, stat mods, flags)
+- `Scripts/Abilities/StatusInstance.cs` — Runtime state (remaining turns, expiry check)
+- `Scripts/Abilities/StatusManager.cs` — Service managing all active statuses + StatusTickResult struct
+- `Scripts/Grid/SurfaceDefinition.cs` — SO for surface effect data (type, duration, tick damage, on-enter status, movement cost)
+- `Scripts/Grid/SurfaceInstance.cs` — Runtime state (remaining rounds, expiry check)
+- `Scripts/Grid/SurfaceSystem.cs` — Core surface manager + reaction table + SurfaceReaction/SurfaceTickResult structs
+- `Scripts/Grid/SurfaceVisualizer.cs` — Hex fill overlay rendering for active surfaces
+- `Data/Statuses/Burning.asset` — 3 fire dmg/turn, 3 turns, ignores armor, orange tint
+- `Data/Statuses/Frozen.asset` — 2 ice dmg/turn, 2 turns, prevents move+act, -3 FIN, blue tint
+- `Data/Surfaces/FireSurface.asset` — 2 fire dmg/turn, 3 rounds, applies Burning, orange-red tint
+- `Data/Surfaces/OilSurface.asset` — 5 rounds, +0.5 move cost, dark brown tint
+- `Data/Surfaces/PoisonSurface.asset` — 2 poison dmg/turn, 4 rounds, green tint
+- `Data/Surfaces/IceSurface.asset` — 3 rounds, -0.3 move cost, applies Frozen, light blue tint
+
+### Files Modified This Session
+- `Scripts/Units/UnitVisual.cs` — Added `PlayDeathAnimation()`, `DeathSequenceCoroutine()`, `FadeOutCoroutine()`, `SetMaterialTransparent()`, death header fields, `IsDying` property. Refactored selection ring material setup to reuse `SetMaterialTransparent()`.
+- `Scripts/Units/UnitSpawner.cs` — Added `DespawnWithDeathAnimation()` method
+- `Scripts/Combat/CombatSceneController.cs` — Added `_statusManager`, `_surfaceSystem` fields + properties + serialized `_surfaceDefinitions[]`. Created both in `Initialize()`, registers surface definitions, injects into AbilityExecutor. Status tick processing in `OnTurnStarted()`, surface on-enter effects in `OnTurnStarted()` and `OnUnitMoveCompleted()`, surface round-end ticking in `OnRoundEnded()`. Status cleanup + death animation in `HandleUnitDeath()`.
+- `Scripts/AI/AIBrain.cs` — `HandleUnitDeath()` now uses `DespawnWithDeathAnimation()` instead of `DespawnUnit()`
+- `Scripts/Abilities/AbilityExecutor.cs` — Added `SetStatusManager()` and `SetSurfaceSystem()` injection, `ApplyStatus` and `CreateSurface` cases functional
+- `Scripts/Abilities/AbilityResult.cs` — Added `StatusesApplied` field
+- `Scripts/Abilities/EffectPayload.cs` — Added `StatusToApply` (StatusDefinition), `SurfaceToCreate` (SurfaceDefinition)
+- `Scripts/Abilities/AbilityEnums.cs` — Added `CreateSurface` to AbilityEffectType enum
+- `Scripts/Units/UnitEvents.cs` — Added `StatusAppliedEvent` and `StatusExpiredEvent` structs
+- `Scripts/Core/GameBootstrap.cs` — Added `InitializeSurfaceVisualizer()` in combat init pipeline
+- `Data/Abilities/FireBolt.asset` — Added ApplyStatus→Burning effect + CreateSurface→FireSurface effect
+- `Data/Abilities/BasicAttack.asset`, `BasicHeal.asset` — Added `StatusToApply` and `SurfaceToCreate` fields for struct compatibility
+
+### Key Technical Details
+- **Death animation pipeline**: `HandleUnitDeath()` → clear grid/registry immediately → publish `UnitDiedEvent` → `DespawnWithDeathAnimation()` → `UnitVisual.PlayDeathAnimation()` → fade out + sink → `Destroy(GO)`. Gameplay logic isn't blocked by the animation.
+- **Status tick flow**: `OnTurnStarted()` → `StatusManager.ProcessTurnStart(unit)` → iterate statuses, apply tick damage/healing, decrement duration, remove expired → return `StatusTickResult` → publish events → check tick-kill.
+- **Buff aggregation**: `StatusManager.RecalculateBuffs()` sums all active status stat modifiers and calls `UnitStats.SetBuffBonuses()`. Recalculated on apply, remove, and tick.
+- **Non-stackable refresh**: If a non-stackable status is applied again, the old instance is replaced (duration reset) rather than adding a duplicate.
+- **Surface creation flow**: `AbilityExecutor` → `SurfaceSystem.CreateSurface()` → check reaction with existing surface → place instance + set `HexCell.Surface` → check neighbor chain reactions → deferred `_pendingCreations` processing.
+- **Surface on-enter**: Applied in `OnTurnStarted()` (unit starts turn on surface) and `OnUnitMoveCompleted()` (unit moves onto surface). Deals tick damage (reduced by armor/magic resist unless `TickIgnoresArmor`) and applies on-enter status.
+- **Surface round-end**: `ProcessRoundEnd()` ticks all surface durations, removes expired surfaces. Subscribed to `RoundEndedEvent`.
+- **SurfaceVisualizer**: Polled via `SurfaceSystem.IsDirty` flag in `Update()`. Rebuilds mesh with 7-vertex hex fills (center + 6 corners at 0.9x radius). Edge vertices use 50% alpha fade. Uses `Sprites/Default` shader with vertex colors + alpha blending.
+
+---
+
+## 2026-03-03 (Session 7) — Data-Driven Ability System
+
+### Completed
+- **Ability System** — Replaced hardcoded `BasicAttackSystem` and `HealSkillSystem` with a fully data-driven ability framework. Abilities are authored as `AbilityDefinition` ScriptableObjects in the Inspector — no code changes needed to add new abilities.
+- **AbilityDefinition SO** — Fields: name, description, icon, range, apCost, cooldown, targetingType, element, effects[], animationTrigger. Each ability has a list of `EffectPayload` structs (type, baseValue, scalingStat, scalingFactor, statusId).
+- **AbilityExecutor** — Stateless execution pipeline: validate → collect targets (via TargetingHelper) → apply effects → return unified `AbilityResult`. Reuses `DamageResolver` for damage math.
+- **TargetingHelper** — Static utility for target validation and collection. Supports 4 targeting types: SingleEnemy, SingleAlly, Self, CircleAOE.
+- **DamageResolver upgrade** — New `ResolveAbilityDamage()` method handles data-driven damage: reads scaling stat from EffectPayload, applies armor (physical) or magic resistance (magic), crit from Wits. Physical damage preserves Finesse secondary contribution.
+- **CombatSceneController refactor** — `QueuedActionType` simplified to None/Move/Ability. Unified `ExecuteAbility()` replaces separate `ExecuteAttack()`/`ExecuteHeal()`. New `QueueAbility(AbilityDefinition)` public API.
+- **AIBrain refactor** — Uses `AbilityExecutor` + reads abilities from `unit.Definition.Abilities`. `GetBestOffensiveAbility()` picks first damaging ability. Range checks use ability.Range instead of hardcoded constant.
+- **Dynamic HUD buttons** — `CombatHudController` generates ability buttons from active unit's ability list. Mage shows [Move][Attack][Heal][Fire Bolt][Cancel][End Turn]; Warrior shows [Move][Attack][Cancel][End Turn]. Queued ability highlighted with blue tint.
+- **3 ability assets** — BasicAttack (melee range=1, STR scaling, physical), BasicHeal (range=2, INT*0.5+4, Holy), FireBolt (range=3, INT*0.8+3, Fire element, magic damage).
+- **Unit ability assignments** — Warrior/Archer/SkeletonKnight/GoblinWarrior: [Attack]. Mage: [Attack, Heal, Fire Bolt].
+
+### Files Created This Session
+- `Scripts/Abilities/AbilityEnums.cs` — TargetingType, AbilityEffectType, ScalingStat, ElementType enums
+- `Scripts/Abilities/EffectPayload.cs` — Serializable effect data struct
+- `Scripts/Abilities/AbilityDefinition.cs` — ScriptableObject ability template
+- `Scripts/Abilities/AbilityResult.cs` — Unified execution result struct
+- `Scripts/Abilities/AbilityExecutor.cs` — Stateless ability execution service
+- `Scripts/Abilities/TargetingHelper.cs` — Static target validation/collection utility
+- `Data/Abilities/BasicAttack.asset` — Melee attack ability
+- `Data/Abilities/BasicHeal.asset` — Heal ally ability
+- `Data/Abilities/FireBolt.asset` — Ranged fire magic ability
+
+### Files Modified This Session
+- `Scripts/Combat/CombatSceneController.cs` — Replaced BasicAttackSystem/HealSkillSystem with AbilityExecutor, unified ExecuteAbility(), simplified QueuedActionType enum
+- `Scripts/Combat/DamageResolver.cs` — Added ResolveAbilityDamage() overload, removed old ResolveBasicAttack()
+- `Scripts/AI/AIBrain.cs` — Replaced BasicAttackSystem with AbilityExecutor, added GetBestOffensiveAbility()
+- `Scripts/UI/CombatHudController.cs` — Dynamic ability button rendering from unit's ability list
+- `Scripts/Units/UnitDefinition.cs` — Added `_abilities` (AbilityDefinition[]) field
+- `Data/Units/*.asset` — All 5 unit assets updated with ability references
+
+### Files Deleted This Session
+- `Scripts/Combat/BasicAttackSystem.cs` — Replaced by AbilityExecutor
+- `Scripts/Combat/HealSkillSystem.cs` — Replaced by AbilityExecutor
+
+### Key Technical Details
+- **Ability data flow**: AbilityDefinition (SO) → AbilityExecutor.Execute() → EffectPayload[] iteration → DamageResolver.ResolveAbilityDamage() or Heal calculation → UnitRuntime.TakeDamage()/Heal() → AbilityResult returned → caller publishes EventBus events.
+- **Damage formula**: `BaseValue + ScalingStat * ScalingFactor` + Finesse*0.35 (physical only) - Armor/MagicResist. Crit from Wits unchanged.
+- **Heal formula**: `BaseValue + ScalingStat * ScalingFactor`, minimum 1, capped at MaxHP.
+- **AI ability selection**: `GetBestOffensiveAbility()` returns first `IsDamaging` ability from unit's definition. Phase 1 sufficient; later can add scoring.
+
+### Upgrade Paths (documented for future sessions)
+- **DOS2 AP system**: `AbilityDefinition._apCost` field already exists (default=1). Upgrade: change `ActionSystem` from boolean HasMoved/HasActed to int AP pool, change `UnitRuntime` to track `CurrentAP`, update UI to show AP bar. AbilityDefinition unchanged.
+- **More targeting types**: Add enum values to `TargetingType` (Cone, Line, GroundTarget) + corresponding logic in `TargetingHelper.CollectTargets()`. AbilityDefinition/AbilityExecutor unchanged.
+- **Status effects**: `EffectPayload.ApplyStatus` + `StatusId` field already exist. Implement `StatusDefinition` SO + `BuffManager`, wire into AbilityExecutor's ApplyStatus case.
+- **Surface creation**: Add `AbilityEffectType.CreateSurface` + `SurfaceType` field to EffectPayload. Wire into AbilityExecutor + SurfaceSystem.
+- **Cooldowns**: `AbilityDefinition._cooldown` field exists. Implement per-unit cooldown tracking in a `CooldownTracker` service, check in AbilityExecutor validation.
+
+---
+
 ## 2026-03-03 (Session 6) — UI Click-Through Fix, Move Confirmation, Weapon Binding Research
 
 ### Completed
@@ -174,12 +347,13 @@ without diffing code.
 ## Next Steps (Priority Order)
 
 ### Immediate (Phase 1 Core Combat Loop)
-1. **Ability System** — `Abilities/AbilityDefinition.cs` (SO: name, range, damage, element, cost, targetType), `AbilityExecutor.cs`. Replace hardcoded `BasicAttackSystem`/`HealSkillSystem` with data-driven abilities.
-2. **Death animation** — Play death animation before despawn, fade out.
-4. **Status Effects** — Burning, Poisoned, Frozen, Blessed. Tied to surface system.
-5. **Surface System** — Cells have optional surface (Fire, Ice, Poison, Oil). Abilities create/interact with surfaces.
-6. **Cover System** — HalfCover -25% dmg, FullCover blocks ranged. Directional check.
-7. **Line of Sight** — Ranged attack LoS validation using hex raycasting.
+1. ~~**Ability System**~~ — Done (Session 7).
+2. ~~**Death animation**~~ — Done (Session 8). Fade out + sink before despawn.
+3. ~~**Status Effects**~~ — Done (Session 8). StatusDefinition SO + StatusManager + wired into AbilityExecutor.
+4. ~~**Surface System**~~ — Done (Session 8). SurfaceDefinition SO + SurfaceSystem manager + reaction table + SurfaceVisualizer + 4 surface assets.
+5. ~~**Cover System**~~ — Done (Session 8). CoverResolver + DamageResolver integration + CoverSetup + CoverVisualizer.
+6. ~~**Line of Sight**~~ — Done (Session 9). CoverResolver.HasLineOfSight() + AbilityExecutor + AIBrain integration.
+7. ~~**DOS2 AP system**~~ — Done (Session 9). UnitRuntime AP pool, ActionSystem rewrite, per-ability AP costs, AI budgeting, HUD display.
 
 ### Later (Phase 1 Polish)
 - Better attack/heal visual feedback (VFX, camera shake)
@@ -193,7 +367,8 @@ without diffing code.
 
 - **Three-layer rule**: Thin MonoBehaviour → Plain C# domain logic → Presentation
 - **Events**: `EventBus.Publish<T>()` / `EventBus.Subscribe<T>()` (static generic struct)
-- **Action economy**: 1 move + 1 main + 0~1 bonus, explicit end turn, order-free
+- **Action economy**: DOS2-style AP pool (default 6 AP/turn). Movement = 1 AP/hex, abilities cost variable AP. Explicit end turn, order-free (move/attack/move if AP permits).
+- **Abilities**: Data-driven via `AbilityDefinition` SO → `AbilityExecutor.Execute()`. Each unit has `AbilityDefinition[]` in its `UnitDefinition`. HUD buttons generated dynamically.
 - **Stats**: All derived stats centralized in `UnitStats.cs`, equipment via `SetEquipmentBonuses()`
 - **Grid**: `HexGridMap` is authority for cell data, pathfinding, occupancy
 - **Input**: Unity New Input System 1.18.0, `TacticalInputHandler` uses `FindAction()` on existing actions
@@ -205,15 +380,18 @@ without diffing code.
 Assets/_Project/
   Scripts/
     Core/       GameBootstrap.cs, EventBus.cs, GameSession.cs
-    Grid/       HexGridMap, HexCell, HexCoord, HexPathfinder, HexGridVisualizer, HexGridScanner, HexGridConfig, MinHeap, GridEnums
-    Combat/     CombatSceneController, TurnManager, ActionSystem, BasicAttackSystem, HealSkillSystem, DamageResolver, CombatEvents
+    Grid/       HexGridMap, HexCell, HexCoord, HexPathfinder, HexGridVisualizer, HexGridScanner, HexGridConfig, MinHeap, GridEnums, SurfaceDefinition, SurfaceInstance, SurfaceSystem, SurfaceVisualizer, CoverResolver, CoverSetup, CoverVisualizer
+    Combat/     CombatSceneController, TurnManager, ActionSystem, DamageResolver, CombatEvents
     Units/      UnitDefinition, UnitRuntime, UnitStats, UnitRegistry, UnitSpawner, UnitBrain, UnitVisual, UnitSelectionManager, UnitMovementSystem, MovementRangeVisualizer, TacticalInputHandler, UnitEvents
     Camera/     TacticalCamera, TacticalCameraInputHandler, TacticalCameraConfig
     UI/         CombatHudController, CombatUIManager, FloatingDamageText, UnitWorldUI, TurnOrderBar, PartyPortraitPanel
     AI/         AIBrain, AIScorer
-    Abilities/  (empty — next to build)
+    Abilities/  AbilityEnums, EffectPayload, AbilityDefinition, AbilityResult, AbilityExecutor, TargetingHelper, StatusDefinition, StatusInstance, StatusManager
   Data/
     Units/      Warrior_01, Archer_01, Mage_01, SkeletonKnight_01, GoblinWarrior_01
+    Abilities/  BasicAttack, BasicHeal, FireBolt
+    Statuses/   Burning, Frozen
+    Surfaces/   FireSurface, OilSurface, PoisonSurface, IceSurface
     Grid/       ForgeGridConfig.asset
     Animation/  CombatUnitAnimator.controller, ExplorerAnimator.controller
   Scenes/Combat/ Combat_RuinsPrototype_01.unity

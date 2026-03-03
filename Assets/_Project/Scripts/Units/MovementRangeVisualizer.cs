@@ -84,9 +84,12 @@ namespace TurnBasedTactics.Units
 
             if (unit == null || !unit.CanMove) return;
 
+            // Effective range is the lesser of movement points and current AP
+            int effectiveRange = Mathf.Min(unit.Stats.MovementPoints, unit.CurrentAP);
+
             var pathConfig = HexPathfinder.PathConfig.Default;
             _currentReachable = HexPathfinder.GetReachable(
-                _gridMap, unit.GridPosition, unit.Stats.MovementPoints, pathConfig);
+                _gridMap, unit.GridPosition, effectiveRange, pathConfig);
 
             float radius = _gridMap.Config.HexOuterRadius * 0.95f;
 
@@ -97,7 +100,7 @@ namespace TurnBasedTactics.Units
             BuildPerimeterSegments(radius);
 
             // ── Unreachable: gray dimming overlay ──
-            int extendedRange = unit.Stats.MovementPoints + 3;
+            int extendedRange = effectiveRange + 3;
             var grayCoords = new List<HexCoord>();
             var extendedCoords = HexCoord.GetRange(unit.GridPosition, extendedRange);
             foreach (var coord in extendedCoords)
