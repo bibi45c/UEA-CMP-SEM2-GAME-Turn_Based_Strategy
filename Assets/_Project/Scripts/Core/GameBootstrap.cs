@@ -6,6 +6,7 @@ using TurnBasedTactics.Units;
 using TurnBasedTactics.Combat;
 using TurnBasedTactics.UI;
 using TacticalCam = global::TurnBasedTactics.Camera.TacticalCamera;
+using CameraShake = global::TurnBasedTactics.Camera.CameraShake;
 
 namespace TurnBasedTactics.Core
 {
@@ -359,8 +360,10 @@ namespace TurnBasedTactics.Core
             InitializeSurfaceVisualizer(gridMap);
             InitializeCombatHud();
             InitializeCombatWorldUI(spawner);
+            InitializeCombatVFX(spawner);
             InitializeTurnOrderBar();
             InitializePartyPortraits(selectionMgr);
+            InitializeResultsScreen();
             _combatController.StartCombat();
             Debug.Log("[GameBootstrap] Combat system initialized and started.");
         }
@@ -404,6 +407,30 @@ namespace TurnBasedTactics.Core
             Debug.Log("[GameBootstrap] Combat World UI (HP bars + floating text) initialized.");
         }
 
+        private void InitializeCombatVFX(UnitSpawner spawner)
+        {
+            if (_combatRoot == null || _cameraRoot == null)
+                return;
+
+            // Camera shake — sits on the camera GO alongside TacticalCamera
+            CameraShake cameraShake = null;
+            var cam = _cameraRoot.GetComponentInChildren<TacticalCam>();
+            if (cam != null)
+            {
+                cameraShake = cam.GetComponent<CameraShake>();
+                if (cameraShake == null)
+                    cameraShake = cam.gameObject.AddComponent<CameraShake>();
+            }
+
+            // VFX manager — sits on CombatRoot, orchestrates all combat VFX
+            var vfxManager = _combatRoot.GetComponent<CombatVFXManager>();
+            if (vfxManager == null)
+                vfxManager = _combatRoot.gameObject.AddComponent<CombatVFXManager>();
+
+            vfxManager.Initialize(spawner, cameraShake);
+            Debug.Log("[GameBootstrap] Combat VFX system initialized.");
+        }
+
         private void InitializeTurnOrderBar()
         {
             if (_uiRoot == null || _combatController == null)
@@ -428,6 +455,19 @@ namespace TurnBasedTactics.Core
 
             panel.Initialize(_registry, selectionMgr, _combatController);
             Debug.Log("[GameBootstrap] Party Portrait Panel initialized.");
+        }
+
+        private void InitializeResultsScreen()
+        {
+            if (_uiRoot == null || _registry == null || _combatController == null)
+                return;
+
+            var resultsScreen = _uiRoot.GetComponent<CombatResultsScreen>();
+            if (resultsScreen == null)
+                resultsScreen = _uiRoot.gameObject.AddComponent<CombatResultsScreen>();
+
+            resultsScreen.Initialize(_registry, _combatController);
+            Debug.Log("[GameBootstrap] Combat Results Screen initialized.");
         }
 
         private void OnDestroy()

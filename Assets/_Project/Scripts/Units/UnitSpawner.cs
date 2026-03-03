@@ -149,6 +149,10 @@ namespace TurnBasedTactics.Units
 
             visual.Initialize(animator, teamId);
 
+            // 5a. Add hit flash effect for combat VFX
+            var hitFlash = unitGO.AddComponent<HitFlashEffect>();
+            hitFlash.Initialize();
+
             // 5b. Attach weapon if defined
             if (definition.WeaponPrefab != null && unitGO.transform.childCount > 0)
             {
