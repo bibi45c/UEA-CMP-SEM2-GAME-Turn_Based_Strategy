@@ -17,8 +17,8 @@ MonoBehaviour:
   _modelPrefab: {fileID: 1069347578494328, guid: 5cc8937f65137dc49bb957920049ad14, type: 3}
   _weaponPrefab: {fileID: 1612301476336804, guid: 0b9d00be92a5f7c48a303a09572d5ab5, type: 3}
   _weaponBoneName: Hand_R
-  _weaponPositionOffset: {x: 0, y: 0, z: 0}
-  _weaponRotationOffset: {x: 0, y: 90, z: 0}
+  _weaponPositionOffset: {x: 0.15, y: 0.05, z: 0}
+  _weaponRotationOffset: {x: 75, y: 22, z: 180}
   _useOriginalMaterials: 1
   _strength: 6
   _finesse: 8

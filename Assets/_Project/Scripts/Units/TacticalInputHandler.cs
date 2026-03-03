@@ -1,8 +1,10 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using TurnBasedTactics.Core;
 using TurnBasedTactics.Grid;
 using TurnBasedTactics.Combat;
+using TurnBasedTactics.UI;
 using TacticalCam = global::TurnBasedTactics.Camera.TacticalCamera;
 
 namespace TurnBasedTactics.Units
@@ -31,6 +33,13 @@ namespace TurnBasedTactics.Units
         private CombatSceneController _combatController;
         private MovementRangeVisualizer _rangeVisualizer;
         private bool _initialized;
+
+        // Move confirmation state
+        private HexCoord? _pendingMoveTarget;
+        private GameObject _pendingMoveMarker;
+
+        /// <summary>Hint text when a move is pending confirmation. Null otherwise.</summary>
+        public static string PendingActionHint { get; private set; }
 
         public void Initialize(
             UnitSelectionManager selectionManager,
@@ -87,6 +96,7 @@ namespace TurnBasedTactics.Units
 
         private void OnDisable()
         {
+            ClearPendingMove();
             EventBus.Unsubscribe<TurnStartedEvent>(OnTurnStarted);
         }
 
@@ -96,6 +106,17 @@ namespace TurnBasedTactics.Units
 
             // Block all tactical input during action animations
             if (_combatController != null && _combatController.IsActionAnimating) return;
+
+            // Clear stale pending move if conditions no longer valid
+            if (_pendingMoveTarget.HasValue && _combatController != null)
+            {
+                var cu = _combatController.CurrentUnit;
+                if (!_combatController.IsCombatActive || cu == null ||
+                    !_combatController.ActionSystem.CanMove(cu))
+                {
+                    ClearPendingMove();
+                }
+            }
 
             // Left click: select/deselect unit
             if (_selectAction != null && _selectAction.WasPressedThisFrame())
@@ -126,9 +147,28 @@ namespace TurnBasedTactics.Units
             }
         }
 
+        /// <summary>
+        /// Returns true if the mouse is over any UI element (uGUI Canvas or OnGUI HUD).
+        /// </summary>
+        private bool IsPointerOverUI()
+        {
+            // Check uGUI canvases (TurnOrderBar, PartyPortraitPanel, etc.)
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return true;
+
+            // Check OnGUI HUD (CombatHudController)
+            if (CombatHudController.IsMouseOverHud)
+                return true;
+
+            return false;
+        }
+
         private void HandleSelect()
         {
             if (_camera == null) return;
+
+            if (IsPointerOverUI())
+                return;
 
             Vector2 mousePos = _mousePositionAction.ReadValue<Vector2>();
             Ray ray = _camera.GetScreenRay(mousePos);
@@ -138,6 +178,8 @@ namespace TurnBasedTactics.Units
                 var brain = hit.collider.GetComponentInParent<UnitBrain>();
                 if (brain != null && brain.IsInitialized)
                 {
+                    ClearPendingMove();
+
                     if (_combatController != null && _combatController.TryExecuteQueuedActionOnTarget(brain.Runtime))
                         return;
 
@@ -152,7 +194,7 @@ namespace TurnBasedTactics.Units
 
                     if (_combatController != null && _combatController.IsCombatActive)
                     {
-                        // Combat: only move the active turn unit
+                        // Combat: only move the active turn unit (with confirmation)
                         var activeUnit = _combatController.CurrentUnit;
                         var selectedUnit = _selectionManager.SelectedUnit;
 
@@ -161,18 +203,13 @@ namespace TurnBasedTactics.Units
                             && _combatController.ActionSystem.CanMove(activeUnit)
                             && _rangeVisualizer != null && _rangeVisualizer.IsReachable(targetCoord))
                         {
-                            _movementSystem.HandleMoveCommand(targetCoord);
-                            if (_movementSystem.IsUnitMoving &&
-                                _combatController.QueuedAction == CombatSceneController.QueuedActionType.Move)
-                            {
-                                _combatController.ClearQueuedAction();
-                            }
+                            TryMoveWithConfirmation(targetCoord);
                             return;
                         }
                     }
                     else
                     {
-                        // Non-combat: move if in reachable range
+                        // Non-combat: move immediately
                         if (_rangeVisualizer != null && _rangeVisualizer.IsReachable(targetCoord))
                         {
                             _movementSystem.HandleMoveCommand(targetCoord);
@@ -185,15 +222,20 @@ namespace TurnBasedTactics.Units
             if (_combatController != null && _combatController.HasQueuedAction)
             {
                 _combatController.ClearQueuedAction();
+                ClearPendingMove();
                 return;
             }
 
+            ClearPendingMove();
             _selectionManager.DeselectUnit();
         }
 
         private void HandleMoveCommand()
         {
             if (_camera == null || _gridMap == null) return;
+
+            if (IsPointerOverUI())
+                return;
 
             if (!_selectionManager.HasSelection)
             {
@@ -237,14 +279,23 @@ namespace TurnBasedTactics.Units
             if (Physics.Raycast(ray, out RaycastHit hit, 200f))
             {
                 HexCoord targetCoord = _gridMap.WorldToHex(hit.point);
-                Debug.Log($"[TacticalInputHandler] MoveCommand: right-click at hex {targetCoord}");
-                _movementSystem.HandleMoveCommand(targetCoord);
 
-                if (_movementSystem.IsUnitMoving &&
-                    _combatController != null &&
-                    _combatController.QueuedAction == CombatSceneController.QueuedActionType.Move)
+                // Combat: use two-step confirmation
+                if (_combatController != null && _combatController.IsCombatActive)
                 {
-                    _combatController.ClearQueuedAction();
+                    if (_rangeVisualizer != null && _rangeVisualizer.IsReachable(targetCoord))
+                    {
+                        TryMoveWithConfirmation(targetCoord);
+                    }
+                    else
+                    {
+                        ClearPendingMove();
+                    }
+                }
+                else
+                {
+                    // Non-combat: immediate move
+                    _movementSystem.HandleMoveCommand(targetCoord);
                 }
             }
             else
@@ -257,8 +308,77 @@ namespace TurnBasedTactics.Units
         {
             if (_combatController == null || !_combatController.IsPlayerTurn) return;
 
+            ClearPendingMove();
             Debug.Log("[TacticalInputHandler] Player pressed End Turn.");
             _combatController.EndCurrentTurn();
+        }
+
+        // ------------------------------------------------------------------
+        // Move Confirmation (two-click)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Click same hex twice to confirm a combat move.
+        /// First click shows a marker, second click executes.
+        /// </summary>
+        private void TryMoveWithConfirmation(HexCoord targetCoord)
+        {
+            // Same hex clicked again → confirmed
+            if (_pendingMoveTarget.HasValue && _pendingMoveTarget.Value == targetCoord)
+            {
+                HexCoord dest = _pendingMoveTarget.Value;
+                ClearPendingMove();
+
+                _movementSystem.HandleMoveCommand(dest);
+
+                if (_movementSystem.IsUnitMoving &&
+                    _combatController != null &&
+                    _combatController.QueuedAction == CombatSceneController.QueuedActionType.Move)
+                {
+                    _combatController.ClearQueuedAction();
+                }
+                return;
+            }
+
+            // Different hex or first click → set as pending
+            SetPendingMove(targetCoord);
+        }
+
+        private void SetPendingMove(HexCoord coord)
+        {
+            _pendingMoveTarget = coord;
+            PendingActionHint = $"Click again to confirm move to ({coord.Q}, {coord.R}).";
+
+            Vector3 worldPos = _gridMap.GetCellWorldPosition(coord);
+
+            if (_pendingMoveMarker == null)
+            {
+                _pendingMoveMarker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                _pendingMoveMarker.name = "MoveConfirmMarker";
+
+                // Remove collider so it doesn't block raycasts
+                var col = _pendingMoveMarker.GetComponent<Collider>();
+                if (col != null) Destroy(col);
+
+                var rend = _pendingMoveMarker.GetComponent<Renderer>();
+                rend.material = new Material(Shader.Find("Sprites/Default"));
+                rend.material.color = new Color(0.2f, 1f, 0.3f, 0.5f);
+            }
+
+            _pendingMoveMarker.transform.position = worldPos + Vector3.up * 0.15f;
+            _pendingMoveMarker.transform.localScale = new Vector3(1.3f, 0.02f, 1.3f);
+        }
+
+        public void ClearPendingMove()
+        {
+            _pendingMoveTarget = null;
+            PendingActionHint = null;
+
+            if (_pendingMoveMarker != null)
+            {
+                Destroy(_pendingMoveMarker);
+                _pendingMoveMarker = null;
+            }
         }
 
         private void HandleCycleUnit(int direction)
@@ -296,6 +416,8 @@ namespace TurnBasedTactics.Units
 
         private void OnTurnStarted(TurnStartedEvent evt)
         {
+            ClearPendingMove();
+
             if (!evt.IsPlayerControlled) return;
 
             // Auto-select the active unit at the start of a player turn
