@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d19a05efd1612b44b49d7b67494cf2f, type: 3}
+  m_Name: Poisoned
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Abilities.StatusDefinition
+  _statusId: Poisoned
+  _displayName: Poisoned
+  _description: Toxin courses through the body. Takes poison damage each turn and reduces Strength.
+  _icon: {fileID: 0}
+  _tintColor: {r: 0.3, g: 0.8, b: 0.2, a: 1}
+  _duration: 3
+  _tickDamage: 2
+  _tickElement: 4
+  _tickIgnoresArmor: 1
+  _strengthMod: -2
+  _finesseMod: 0
+  _intelligenceMod: 0
+  _constitutionMod: 0
+  _witsMod: 0
+  _movementMod: 0
+  _preventsMovement: 0
+  _preventsActions: 0
+  _stackable: 0

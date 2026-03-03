@@ -145,12 +145,24 @@ namespace TurnBasedTactics.Core
 
             gridMap.Initialize();
 
+            // Apply manual cover data
+            var coverSetup = gridMap.GetComponent<CoverSetup>();
+            if (coverSetup != null)
+                coverSetup.Initialize(gridMap);
+
             var visualizer = gridMap.GetComponent<HexGridVisualizer>();
             if (visualizer != null)
             {
                 visualizer.BuildCache();
                 Debug.Log("[GameBootstrap] HexGridVisualizer cache built.");
             }
+
+            // Cover visual indicators
+            var coverVis = gridMap.GetComponent<CoverVisualizer>();
+            if (coverVis == null)
+                coverVis = gridMap.gameObject.AddComponent<CoverVisualizer>();
+            coverVis.Initialize(gridMap);
+            Debug.Log("[GameBootstrap] CoverVisualizer initialized.");
 
             Debug.Log($"[GameBootstrap] Grid initialized: {gridMap.CellCount} cells.");
         }
@@ -253,6 +265,56 @@ namespace TurnBasedTactics.Core
                                      "cell is null, unwalkable, or occupied.");
                 }
             }
+
+            // Face each team's units toward the opposing team's center
+            FaceUnitsTowardEnemies(spawner, gridMap);
+        }
+
+        private void FaceUnitsTowardEnemies(UnitSpawner spawner, HexGridMap gridMap)
+        {
+            if (_registry == null) return;
+
+            // Compute center position per team
+            var team0Center = Vector3.zero;
+            var team1Center = Vector3.zero;
+            int team0Count = 0;
+            int team1Count = 0;
+
+            foreach (var unit in _registry.AllUnits)
+            {
+                Vector3 pos = gridMap.GetCellWorldPosition(unit.GridPosition);
+                if (unit.TeamId == 0)
+                {
+                    team0Center += pos;
+                    team0Count++;
+                }
+                else
+                {
+                    team1Center += pos;
+                    team1Count++;
+                }
+            }
+
+            if (team0Count == 0 || team1Count == 0) return;
+
+            team0Center /= team0Count;
+            team1Center /= team1Count;
+
+            // Rotate each unit to face the opposing team's center
+            foreach (var unit in _registry.AllUnits)
+            {
+                var brain = spawner.GetBrain(unit.UnitId);
+                if (brain == null) continue;
+
+                Vector3 target = unit.TeamId == 0 ? team1Center : team0Center;
+                Vector3 direction = target - brain.transform.position;
+                direction.y = 0f;
+
+                if (direction.sqrMagnitude > 0.001f)
+                {
+                    brain.transform.rotation = Quaternion.LookRotation(direction);
+                }
+            }
         }
 
         private void InitializeCombat()
@@ -294,12 +356,26 @@ namespace TurnBasedTactics.Core
             }
 
             _combatController.Initialize(_registry, gridMap, spawner, selectionMgr);
+            InitializeSurfaceVisualizer(gridMap);
             InitializeCombatHud();
             InitializeCombatWorldUI(spawner);
             InitializeTurnOrderBar();
             InitializePartyPortraits(selectionMgr);
             _combatController.StartCombat();
             Debug.Log("[GameBootstrap] Combat system initialized and started.");
+        }
+
+        private void InitializeSurfaceVisualizer(HexGridMap gridMap)
+        {
+            if (_combatController == null || _combatController.SurfaceSystem == null)
+                return;
+
+            var surfaceVis = gridMap.GetComponent<SurfaceVisualizer>();
+            if (surfaceVis == null)
+                surfaceVis = gridMap.gameObject.AddComponent<SurfaceVisualizer>();
+
+            surfaceVis.Initialize(gridMap, _combatController.SurfaceSystem);
+            Debug.Log("[GameBootstrap] SurfaceVisualizer initialized.");
         }
 
         private void InitializeCombatHud()

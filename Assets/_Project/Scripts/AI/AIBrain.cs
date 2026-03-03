@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TurnBasedTactics.Abilities;
 using TurnBasedTactics.Combat;
 using TurnBasedTactics.Core;
 using TurnBasedTactics.Grid;
@@ -10,7 +11,7 @@ namespace TurnBasedTactics.AI
 {
     /// <summary>
     /// AI decision controller for enemy turns.
-    /// Executes a simple but effective loop: pick target → move toward → attack if in range.
+    /// Executes a simple but effective loop: pick target -> move toward -> use ability if in range.
     /// MonoBehaviour for coroutine support (paced actions with visual delays).
     /// </summary>
     public class AIBrain : MonoBehaviour
@@ -23,7 +24,7 @@ namespace TurnBasedTactics.AI
         private HexGridMap _gridMap;
         private UnitSpawner _spawner;
         private ActionSystem _actionSystem;
-        private BasicAttackSystem _attackSystem;
+        private AbilityExecutor _abilityExecutor;
         private CombatSceneController _combatController;
 
         private bool _isExecuting;
@@ -35,14 +36,14 @@ namespace TurnBasedTactics.AI
             HexGridMap gridMap,
             UnitSpawner spawner,
             ActionSystem actionSystem,
-            BasicAttackSystem attackSystem,
+            AbilityExecutor abilityExecutor,
             CombatSceneController combatController)
         {
             _registry = registry;
             _gridMap = gridMap;
             _spawner = spawner;
             _actionSystem = actionSystem;
-            _attackSystem = attackSystem;
+            _abilityExecutor = abilityExecutor;
             _combatController = combatController;
         }
 
@@ -65,7 +66,7 @@ namespace TurnBasedTactics.AI
         {
             _isExecuting = true;
 
-            Debug.Log($"[AIBrain] === AI thinking for {unit.Definition.UnitName} (id={unit.UnitId}) ===");
+            Debug.Log($"[AIBrain] === AI thinking for {unit.Definition.UnitName} (id={unit.UnitId}, AP={unit.CurrentAP}/{unit.MaxAP}) ===");
 
             // Brief pause so player can see it's the enemy's turn
             yield return new WaitForSeconds(_thinkDelay);
@@ -77,6 +78,11 @@ namespace TurnBasedTactics.AI
                 EndTurn();
                 yield break;
             }
+
+            // Pick best offensive ability for this unit
+            AbilityDefinition ability = GetBestOffensiveAbility(unit);
+            int abilityRange = ability != null ? ability.Range : 1;
+            int abilityCost = ability != null ? ability.ApCost : 0;
 
             // 1. Pick a target
             var playerUnits = _registry.GetTeamUnits(TurnManager.PlayerTeamId);
@@ -92,20 +98,25 @@ namespace TurnBasedTactics.AI
 
             Debug.Log($"[AIBrain] Target selected: {target.Definition.UnitName} (HP={target.CurrentHP}/{target.Stats.MaxHP})");
 
-            // 2. Move toward target if needed and can move
-            if (_actionSystem.CanMove(unit))
-            {
-                int distToTarget = unit.GridPosition.DistanceTo(target.GridPosition);
+            // 2. Move toward target if needed and AP permits
+            int distToTarget = unit.GridPosition.DistanceTo(target.GridPosition);
+            bool needsToMove = distToTarget > abilityRange;
 
-                if (distToTarget > _attackSystem.Range)
+            if (needsToMove && unit.CurrentAP > 0)
+            {
+                // Reserve AP for ability if we can afford it
+                int apReservedForAbility = (ability != null && unit.HasEnoughAP(abilityCost)) ? abilityCost : 0;
+                int apAvailableForMove = Mathf.Max(0, unit.CurrentAP - apReservedForAbility);
+                int moveRange = Mathf.Min(unit.Stats.MovementPoints, apAvailableForMove);
+
+                if (moveRange > 0)
                 {
-                    // Calculate reachable cells
                     var pathConfig = HexPathfinder.PathConfig.Default;
                     var reachable = HexPathfinder.GetReachable(
-                        _gridMap, unit.GridPosition, unit.Stats.MovementPoints, pathConfig);
+                        _gridMap, unit.GridPosition, moveRange, pathConfig);
 
                     HexCoord moveTarget = AIScorer.FindBestMoveToward(
-                        unit, target, _attackSystem.Range, _gridMap, reachable);
+                        unit, target, abilityRange, _gridMap, reachable);
 
                     if (moveTarget != unit.GridPosition)
                     {
@@ -114,38 +125,53 @@ namespace TurnBasedTactics.AI
                     else
                     {
                         Debug.Log("[AIBrain] No better position found, staying put.");
-                        _actionSystem.SpendMoveAction(unit);
                     }
                 }
-                else
-                {
-                    // Already in range — save the move action (still spend it per action economy)
-                    Debug.Log("[AIBrain] Already in attack range, skipping movement.");
-                    _actionSystem.SpendMoveAction(unit);
-                }
+            }
+            else if (!needsToMove)
+            {
+                Debug.Log("[AIBrain] Already in attack range, skipping movement.");
             }
 
-            // 3. Attack if in range and can act
-            if (!unit.IsDead && _actionSystem.CanAct(unit))
+            // 3. Use ability if in range and have enough AP
+            if (!unit.IsDead && ability != null && _actionSystem.CanUseAbility(unit, ability))
             {
                 // Re-evaluate target in case the original died or distances changed
                 playerUnits = _registry.GetTeamUnits(TurnManager.PlayerTeamId);
-                target = FindAttackableTarget(unit, playerUnits);
+                target = FindAttackableTarget(unit, playerUnits, ability);
 
                 if (target != null)
                 {
                     yield return new WaitForSeconds(_attackDelay);
-                    ExecuteAttack(unit, target);
+                    ExecuteAttack(unit, target, ability);
                     yield return new WaitForSeconds(1.0f); // Wait for attack animation
                 }
                 else
                 {
-                    Debug.Log("[AIBrain] No target in attack range after moving.");
+                    Debug.Log("[AIBrain] No target in ability range after moving.");
                 }
             }
 
             _isExecuting = false;
             EndTurn();
+        }
+
+        /// <summary>
+        /// Get the best offensive ability this unit has.
+        /// Returns the first damaging ability, or null if none.
+        /// </summary>
+        private AbilityDefinition GetBestOffensiveAbility(UnitRuntime unit)
+        {
+            var abilities = unit.Definition.Abilities;
+            if (abilities == null || abilities.Length == 0) return null;
+
+            foreach (var ability in abilities)
+            {
+                if (ability != null && ability.IsDamaging)
+                    return ability;
+            }
+
+            return null;
         }
 
         private IEnumerator ExecuteMove(UnitRuntime unit, HexCoord destination)
@@ -156,18 +182,18 @@ namespace TurnBasedTactics.AI
             if (path == null || path.Count < 2)
             {
                 Debug.Log("[AIBrain] No path to destination, skipping move.");
-                _actionSystem.SpendMoveAction(unit);
                 yield break;
             }
 
             HexCoord from = unit.GridPosition;
             HexCoord to = path[path.Count - 1];
+            int hexesMoved = path.Count - 1;
 
             // Update grid state (authoritative)
             _gridMap.SetOccupant(from, -1);
             _gridMap.SetOccupant(to, unit.UnitId);
             unit.SetGridPosition(to);
-            _actionSystem.SpendMoveAction(unit);
+            _actionSystem.SpendMoveAP(unit, hexesMoved);
 
             // Publish move event
             EventBus.Publish(new UnitMoveStartedEvent
@@ -202,25 +228,26 @@ namespace TurnBasedTactics.AI
 
             yield return new WaitForSeconds(_moveDelay);
 
-            Debug.Log($"[AIBrain] {unit.Definition.UnitName} moved from {from} to {to}");
+            Debug.Log($"[AIBrain] {unit.Definition.UnitName} moved from {from} to {to} ({hexesMoved} hexes)");
 
             EventBus.Publish(new UnitMoveCompletedEvent
             {
                 UnitId = unit.UnitId,
-                FinalPosition = to
+                FinalPosition = to,
+                HexesMoved = hexesMoved
             });
         }
 
-        private void ExecuteAttack(UnitRuntime attacker, UnitRuntime target)
+        private void ExecuteAttack(UnitRuntime attacker, UnitRuntime target, AbilityDefinition ability)
         {
-            var result = _attackSystem.Execute(attacker, target);
+            var result = _abilityExecutor.Execute(ability, attacker, target, _gridMap, _registry);
             if (!result.Success)
             {
-                Debug.LogWarning($"[AIBrain] Attack failed: {result.FailureReason}");
+                Debug.LogWarning($"[AIBrain] {ability.AbilityName} failed: {result.FailureReason}");
                 return;
             }
 
-            _actionSystem.SpendMainAction(attacker);
+            _actionSystem.SpendAbilityAP(attacker, ability);
 
             // Play attack animation
             UnitBrain brain = _spawner.GetBrain(attacker.UnitId);
@@ -240,18 +267,21 @@ namespace TurnBasedTactics.AI
                 }
             }
 
-            EventBus.Publish(new UnitDamagedEvent
+            if (result.TotalDamage > 0)
             {
-                AttackerUnitId = attacker.UnitId,
-                TargetUnitId = target.UnitId,
-                DamageAmount = result.DamageDealt,
-                RemainingHP = target.CurrentHP,
-                WasCritical = result.WasCritical,
-                DidKill = result.DidKill
-            });
+                EventBus.Publish(new UnitDamagedEvent
+                {
+                    AttackerUnitId = attacker.UnitId,
+                    TargetUnitId = target.UnitId,
+                    DamageAmount = result.TotalDamage,
+                    RemainingHP = target.CurrentHP,
+                    WasCritical = result.WasCritical,
+                    DidKill = result.DidKill
+                });
 
-            Debug.Log($"[AIBrain] {attacker.Definition.UnitName} attacks {target.Definition.UnitName} " +
-                      $"for {result.DamageDealt} damage{(result.WasCritical ? " (CRIT!)" : "")}");
+                Debug.Log($"[AIBrain] {attacker.Definition.UnitName} uses {ability.AbilityName} on {target.Definition.UnitName} " +
+                          $"for {result.TotalDamage} damage{(result.WasCritical ? " (CRIT!)" : "")}");
+            }
 
             if (result.DidKill)
             {
@@ -261,18 +291,23 @@ namespace TurnBasedTactics.AI
         }
 
         /// <summary>
-        /// Find the best target that is currently within attack range.
+        /// Find the best target that is currently within ability range.
         /// </summary>
-        private UnitRuntime FindAttackableTarget(UnitRuntime attacker, List<UnitRuntime> enemies)
+        private UnitRuntime FindAttackableTarget(UnitRuntime attacker, List<UnitRuntime> enemies, AbilityDefinition ability)
         {
             UnitRuntime best = null;
             float bestScore = float.MinValue;
+            int range = ability != null ? ability.Range : 1;
 
             foreach (var enemy in enemies)
             {
                 if (enemy.IsDead) continue;
                 int dist = attacker.GridPosition.DistanceTo(enemy.GridPosition);
-                if (dist > _attackSystem.Range) continue;
+                if (dist > range) continue;
+
+                // LoS check — skip targets behind FullCover obstacles
+                if (!CoverResolver.HasLineOfSight(_gridMap, attacker.GridPosition, enemy.GridPosition, range))
+                    continue;
 
                 float score = AIScorer.ScoreTarget(attacker, enemy);
                 if (score > bestScore)
@@ -291,13 +326,16 @@ namespace TurnBasedTactics.AI
                 _gridMap.SetOccupant(unit.GridPosition, -1);
 
             _registry?.Unregister(unit.UnitId);
-            _spawner?.DespawnUnit(unit.UnitId);
 
             EventBus.Publish(new UnitDiedEvent
             {
                 UnitId = unit.UnitId,
                 Position = unit.GridPosition
             });
+
+            // Play death animation, then destroy the GameObject
+            if (_spawner != null)
+                _spawner.DespawnWithDeathAnimation(unit.UnitId);
         }
 
         private void EndTurn()

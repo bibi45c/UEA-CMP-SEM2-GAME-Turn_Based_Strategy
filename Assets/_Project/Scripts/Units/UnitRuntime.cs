@@ -23,11 +23,11 @@ namespace TurnBasedTactics.Units
         public int CurrentHP { get; private set; }
         public bool IsDead => CurrentHP <= 0;
 
-        // --- Turn Action Tracking ---
-        public bool HasMovedThisTurn { get; private set; }
-        public bool HasActedThisTurn { get; private set; }
-        public bool CanMove => !IsDead && !HasMovedThisTurn;
-        public bool CanAct => !IsDead && !HasActedThisTurn;
+        // --- Turn Action Tracking (AP System) ---
+        public int MaxAP { get; private set; }
+        public int CurrentAP { get; private set; }
+        public bool CanMove => !IsDead && CurrentAP >= 1;
+        public bool CanAct => !IsDead && CurrentAP >= 1;
 
         public UnitRuntime(int unitId, UnitDefinition definition, int teamId, HexCoord startPosition)
         {
@@ -37,6 +37,8 @@ namespace TurnBasedTactics.Units
             TeamId = teamId;
             GridPosition = startPosition;
             CurrentHP = Stats.MaxHP;
+            MaxAP = Stats.ActionPoints;
+            CurrentAP = MaxAP;
         }
 
         // --- Grid Position ---
@@ -60,22 +62,30 @@ namespace TurnBasedTactics.Units
             CurrentHP = Mathf.Min(Stats.MaxHP, CurrentHP + amount);
         }
 
-        // --- Turn Actions ---
+        // --- Action Points ---
 
-        public void SpendMoveAction()
+        /// <summary>Does this unit have enough AP for a given cost?</summary>
+        public bool HasEnoughAP(int cost) => CurrentAP >= cost;
+
+        /// <summary>Spend AP. Clamps to 0.</summary>
+        public void SpendAP(int cost)
         {
-            HasMovedThisTurn = true;
+            cost = Mathf.Max(0, cost);
+            CurrentAP = Mathf.Max(0, CurrentAP - cost);
         }
 
-        public void SpendMainAction()
+        /// <summary>Reset AP to max at the start of a new turn.</summary>
+        public void ResetAP()
         {
-            HasActedThisTurn = true;
+            MaxAP = Stats.ActionPoints;
+            CurrentAP = MaxAP;
         }
+
+        // --- Backwards-compatible wrappers (called by TurnManager) ---
 
         public void ResetTurnActions()
         {
-            HasMovedThisTurn = false;
-            HasActedThisTurn = false;
+            ResetAP();
         }
     }
 }
