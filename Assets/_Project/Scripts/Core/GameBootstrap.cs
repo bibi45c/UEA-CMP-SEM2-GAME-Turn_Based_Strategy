@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using TurnBasedTactics.Grid;
 using TurnBasedTactics.Units;
 using TurnBasedTactics.Combat;
@@ -88,6 +89,9 @@ namespace TurnBasedTactics.Core
             // 3. Validate roots
             ValidateRoots();
 
+            // 3b. Ensure EventSystem exists (required for uGUI raycasting)
+            EnsureEventSystem();
+
             // 4. Grid
             InitializeGrid();
 
@@ -110,6 +114,18 @@ namespace TurnBasedTactics.Core
             if (_combatRoot == null) Debug.LogError("[GameBootstrap] CombatRoot not assigned!");
             if (_cameraRoot == null) Debug.LogError("[GameBootstrap] CameraRoot not assigned!");
             if (_uiRoot == null) Debug.LogError("[GameBootstrap] UIRoot not assigned!");
+        }
+
+        private void EnsureEventSystem()
+        {
+            if (FindAnyObjectByType<EventSystem>() != null)
+                return;
+
+            var esGO = new GameObject("EventSystem");
+            esGO.transform.SetParent(_systemsRoot, false);
+            esGO.AddComponent<EventSystem>();
+            esGO.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            Debug.Log("[GameBootstrap] EventSystem created.");
         }
 
         private void InitializeGrid()
@@ -279,6 +295,9 @@ namespace TurnBasedTactics.Core
 
             _combatController.Initialize(_registry, gridMap, spawner, selectionMgr);
             InitializeCombatHud();
+            InitializeCombatWorldUI(spawner);
+            InitializeTurnOrderBar();
+            InitializePartyPortraits(selectionMgr);
             _combatController.StartCombat();
             Debug.Log("[GameBootstrap] Combat system initialized and started.");
         }
@@ -294,6 +313,45 @@ namespace TurnBasedTactics.Core
 
             hud.Initialize(_combatController);
             Debug.Log("[GameBootstrap] Combat HUD initialized.");
+        }
+
+        private void InitializeCombatWorldUI(UnitSpawner spawner)
+        {
+            if (_uiRoot == null || _registry == null || spawner == null)
+                return;
+
+            var combatUI = _uiRoot.GetComponent<CombatUIManager>();
+            if (combatUI == null)
+                combatUI = _uiRoot.gameObject.AddComponent<CombatUIManager>();
+
+            combatUI.Initialize(_registry, spawner);
+            Debug.Log("[GameBootstrap] Combat World UI (HP bars + floating text) initialized.");
+        }
+
+        private void InitializeTurnOrderBar()
+        {
+            if (_uiRoot == null || _combatController == null)
+                return;
+
+            var turnOrderBar = _uiRoot.GetComponent<TurnOrderBar>();
+            if (turnOrderBar == null)
+                turnOrderBar = _uiRoot.gameObject.AddComponent<TurnOrderBar>();
+
+            turnOrderBar.Initialize(_combatController.TurnManager, _registry);
+            Debug.Log("[GameBootstrap] Turn Order Bar initialized.");
+        }
+
+        private void InitializePartyPortraits(UnitSelectionManager selectionMgr)
+        {
+            if (_uiRoot == null || _registry == null || _combatController == null || selectionMgr == null)
+                return;
+
+            var panel = _uiRoot.GetComponent<PartyPortraitPanel>();
+            if (panel == null)
+                panel = _uiRoot.gameObject.AddComponent<PartyPortraitPanel>();
+
+            panel.Initialize(_registry, selectionMgr, _combatController);
+            Debug.Log("[GameBootstrap] Party Portrait Panel initialized.");
         }
 
         private void OnDestroy()

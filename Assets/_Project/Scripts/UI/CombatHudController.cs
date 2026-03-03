@@ -1,5 +1,7 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using TurnBasedTactics.Combat;
+using TurnBasedTactics.Units;
 
 namespace TurnBasedTactics.UI
 {
@@ -24,6 +26,28 @@ namespace TurnBasedTactics.UI
         private const float TopScale = 2f;
         private const float BottomScale = 3f;
 
+        // Cached rects for UI-over-world blocking
+        private Rect _bannerScreenRect;
+        private Rect _panelScreenRect;
+
+        /// <summary>
+        /// Returns true if the current mouse position is over any OnGUI HUD element.
+        /// Call from Update() to block world clicks beneath the HUD.
+        /// </summary>
+        public static bool IsMouseOverHud { get; private set; }
+
+        private void Update()
+        {
+            if (Mouse.current == null) return;
+
+            // Convert OnGUI rects (top-left origin, Y-down) to screen coords and test
+            Vector2 mouse = Mouse.current.position.ReadValue();
+            // OnGUI Y is inverted relative to screen-space mouse position
+            float guiMouseY = Screen.height - mouse.y;
+            IsMouseOverHud = _bannerScreenRect.Contains(new Vector2(mouse.x, guiMouseY))
+                          || _panelScreenRect.Contains(new Vector2(mouse.x, guiMouseY));
+        }
+
         public void Initialize(CombatSceneController combatController)
         {
             _combatController = combatController;
@@ -42,9 +66,10 @@ namespace TurnBasedTactics.UI
         private void DrawRoundBanner()
         {
             int round = _combatController.TurnManager?.CurrentRound ?? 0;
-            float w = 220f * TopScale;
-            float h = 42f * TopScale;
-            Rect rect = new Rect((Screen.width - w) * 0.5f, 12f * TopScale, w, h);
+            float w = 180f * TopScale;
+            float h = 36f * TopScale;
+            Rect rect = new Rect(12f, 12f, w, h);
+            _bannerScreenRect = rect;
             GUI.Box(rect, $"Round {round}", _bannerStyle);
         }
 
@@ -53,6 +78,7 @@ namespace TurnBasedTactics.UI
             float panelW = Mathf.Min(520f * BottomScale, Screen.width - 40f);
             float panelH = 120f * BottomScale;
             Rect panelRect = new Rect(20f, Screen.height - panelH - 20f, panelW, panelH);
+            _panelScreenRect = panelRect;
             GUI.Box(panelRect, GUIContent.none, _panelStyle);
 
             float textX = panelRect.x + 16f * BottomScale;
@@ -145,9 +171,11 @@ namespace TurnBasedTactics.UI
             if (GUI.Button(new Rect(textX + (buttonWidth + spacing) * 4f, buttonY, buttonWidth, buttonHeight), "End Turn", _buttonStyle))
                 _combatController.EndCurrentTurn();
 
+            // Show pending move confirmation hint if active, otherwise regular hint
+            string hint = TacticalInputHandler.PendingActionHint ?? _combatController.GetQueuedActionHint();
             GUI.Label(
                 new Rect(textX, buttonY + buttonHeight + 10f * BottomScale, panelRect.width - 32f * BottomScale, 24f * BottomScale),
-                _combatController.GetQueuedActionHint(),
+                hint,
                 _hintStyle);
         }
 
