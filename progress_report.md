@@ -11,6 +11,35 @@ without diffing code.
 
 ---
 
+## 2026-03-03 (Session 6) — UI Click-Through Fix, Move Confirmation, Weapon Binding Research
+
+### Completed
+- **UI click-through fix** — Clicking OnGUI HUD buttons (End Turn, Move, etc.) no longer passes through to the game world. Dual-layer detection: `EventSystem.IsPointerOverGameObject()` for uGUI canvases + `CombatHudController.IsMouseOverHud` static property for OnGUI rects. Added `EnsureEventSystem()` in GameBootstrap creating EventSystem + InputSystemUIInputModule (scene had none).
+- **Two-click move confirmation** — Combat move now requires clicking the same hex twice to confirm. First click shows green cylinder marker + hint text "Click again to confirm move to (Q, R)". Click different hex updates pending target. Cancel/EndTurn/turn change clears pending. Non-combat retains immediate movement.
+- **Input.mousePosition fix** — `CombatHudController.Update()` migrated from legacy `Input.mousePosition` to `Mouse.current.position.ReadValue()` (New Input System API). Eliminates `InvalidOperationException` at runtime.
+- **Weapon binding research** — Investigated Synty PropBone system. Confirmed it's designed for SwordCombat pack weapons only; PolygonDungeon/PolygonDungeonRealms weapons need manual offset tuning. Created `WeaponBindingGuide.md` reference document. Mage staff manually tuned: Pos(0.15, 0.05, 0) Rot(75, 22, 180).
+
+### Files Modified This Session
+- `Scripts/Units/TacticalInputHandler.cs` — Added `IsPointerOverUI()`, pending move state (`_pendingMoveTarget`, `_pendingMoveMarker`, `PendingActionHint`), `TryMoveWithConfirmation()`, `SetPendingMove()`, `ClearPendingMove()`
+- `Scripts/UI/CombatHudController.cs` — Added `IsMouseOverHud` static property, `Update()` with `Mouse.current.position`, hint label shows `PendingActionHint`
+- `Scripts/Core/GameBootstrap.cs` — Added `EnsureEventSystem()` creating EventSystem + InputSystemUIInputModule
+- `Scripts/Combat/CombatSceneController.cs` — Minor adjustments for animation blocking
+- `Data/Units/Mage_01.asset` — Weapon offset tuned: Pos(0.15, 0.05, 0) Rot(75, 22, 180)
+
+### Files Created This Session
+- `WeaponBindingGuide.md` — Synty Prop Bone system reference, weapon prefab paths, animation clip inventory
+
+### Weapon Offset Status
+| Unit | Weapon | Tuned? |
+|------|--------|--------|
+| Warrior | Straightsword | No — needs Play Mode tuning |
+| Archer | Spear | No — needs Play Mode tuning |
+| Mage | Staff | Yes — Pos(0.15, 0.05, 0) Rot(75, 22, 180) |
+| Skeleton Knight | Large Sword | No — needs Play Mode tuning |
+| Goblin Warrior | Small Axe | No — needs Play Mode tuning |
+
+---
+
 ## 2026-03-03 (Session 5) — Enemy AI, HP Bars, Floating Damage Text, Turn Order UI
 
 ### Completed
