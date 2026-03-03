@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22d40dfd569b0c3479205ae2f5ff3983, type: 3}
+  m_Name: Archer_01
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Units.UnitDefinition
+  _unitName: Archer
+  _portrait: {fileID: 0}
+  _modelPrefab: {fileID: 1916933298521316, guid: 06a217c3ea84f3647bb83f3656e3832b, type: 3}
+  _weaponPrefab: {fileID: 1188651973590630, guid: 49861bdc4ee2dd544b19a340b871619c, type: 3}
+  _weaponBoneName: Hand_R
+  _weaponPositionOffset: {x: 0, y: 0, z: 0}
+  _weaponRotationOffset: {x: 0, y: 0, z: 0}
+  _useOriginalMaterials: 1
+  _strength: 8
+  _finesse: 14
+  _intelligence: 8
+  _constitution: 8
+  _wits: 12
+  _baseMovementPoints: 5
+  _baseActionPoints: 1
+  _level: 1
