@@ -1,4 +1,10 @@
+using System;
 using UnityEngine;
+using TurnBasedTactics.Grid;
+using TurnBasedTactics.Units;
+using TurnBasedTactics.Combat;
+using TurnBasedTactics.UI;
+using TacticalCam = global::TurnBasedTactics.Camera.TacticalCamera;
 
 namespace TurnBasedTactics.Core
 {
@@ -9,8 +15,9 @@ namespace TurnBasedTactics.Core
     /// Initialization order:
     ///   1. GameSession (create or reuse)
     ///   2. EventBus (clear stale handlers)
-    ///   3. Find scene root references
-    ///   4. Future: Grid, Combat, Camera, UI subsystem init
+    ///   3. Validate scene root references
+    ///   4. Grid system
+    ///   5. Unit system (spawner, selection, movement, input)
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
@@ -25,6 +32,13 @@ namespace TurnBasedTactics.Core
         [SerializeField] private Transform _combatRoot;
         [SerializeField] private Transform _cameraRoot;
         [SerializeField] private Transform _uiRoot;
+
+        [Header("Test Spawn Data")]
+        [SerializeField] private SpawnData[] _testSpawns;
+
+        // Runtime references
+        private UnitRegistry _registry;
+        private CombatSceneController _combatController;
 
         // --- Public accessors for other systems ---
         public Transform SystemsRoot => _systemsRoot;
@@ -56,7 +70,7 @@ namespace TurnBasedTactics.Core
         {
             Debug.Log("[GameBootstrap] === Initializing Core Systems ===");
 
-            // 1. Session: create new or reuse existing
+            // 1. Session
             if (GameSession.Current == null)
             {
                 GameSession.Create();
@@ -67,18 +81,21 @@ namespace TurnBasedTactics.Core
                 Debug.Log("[GameBootstrap] Reusing existing GameSession.");
             }
 
-            // 2. EventBus: clear stale handlers from previous scene
+            // 2. EventBus
             EventBus.Clear();
             Debug.Log("[GameBootstrap] EventBus cleared.");
 
-            // 3. Validate scene root references
+            // 3. Validate roots
             ValidateRoots();
 
-            // 4. Future subsystem initialization hooks
-            // InitializeGrid();
-            // InitializeCombat();
-            // InitializeCamera();
-            // InitializeUI();
+            // 4. Grid
+            InitializeGrid();
+
+            // 5. Units
+            InitializeUnits();
+
+            // 6. Combat (TurnManager + ActionSystem)
+            InitializeCombat();
 
             Debug.Log("[GameBootstrap] === Core initialization complete ===");
         }
@@ -95,6 +112,190 @@ namespace TurnBasedTactics.Core
             if (_uiRoot == null) Debug.LogError("[GameBootstrap] UIRoot not assigned!");
         }
 
+        private void InitializeGrid()
+        {
+            if (_gridRoot == null)
+            {
+                Debug.LogWarning("[GameBootstrap] GridRoot not assigned, skipping grid init.");
+                return;
+            }
+
+            var gridMap = _gridRoot.GetComponentInChildren<HexGridMap>();
+            if (gridMap == null)
+            {
+                Debug.LogWarning("[GameBootstrap] No HexGridMap found under GridRoot.");
+                return;
+            }
+
+            gridMap.Initialize();
+
+            var visualizer = gridMap.GetComponent<HexGridVisualizer>();
+            if (visualizer != null)
+            {
+                visualizer.BuildCache();
+                Debug.Log("[GameBootstrap] HexGridVisualizer cache built.");
+            }
+
+            Debug.Log($"[GameBootstrap] Grid initialized: {gridMap.CellCount} cells.");
+        }
+
+        private void InitializeUnits()
+        {
+            // Get grid map (required dependency)
+            var gridMap = _gridRoot != null ? _gridRoot.GetComponentInChildren<HexGridMap>() : null;
+            if (gridMap == null || !gridMap.IsInitialized)
+            {
+                Debug.LogWarning("[GameBootstrap] Grid not initialized, skipping unit init.");
+                return;
+            }
+
+            // Create registry (plain C#) — store as field for combat init
+            _registry = new UnitRegistry();
+            var registry = _registry;
+
+            // Find system MonoBehaviours
+            var spawner = _systemsRoot.GetComponentInChildren<UnitSpawner>();
+            var selectionMgr = _systemsRoot.GetComponentInChildren<UnitSelectionManager>();
+            var movementSys = _systemsRoot.GetComponentInChildren<UnitMovementSystem>();
+            var inputHandler = _systemsRoot.GetComponentInChildren<TacticalInputHandler>();
+
+            // Range visualizer is on GridRoot (alongside HexGridVisualizer)
+            var rangeVis = _gridRoot.GetComponentInChildren<MovementRangeVisualizer>();
+
+            // Get camera
+            var camera = _cameraRoot != null ? _cameraRoot.GetComponentInChildren<TacticalCam>() : null;
+
+            // Validate
+            if (spawner == null) { Debug.LogError("[GameBootstrap] UnitSpawner not found!"); return; }
+            if (selectionMgr == null) { Debug.LogError("[GameBootstrap] UnitSelectionManager not found!"); return; }
+            if (movementSys == null) { Debug.LogError("[GameBootstrap] UnitMovementSystem not found!"); return; }
+
+            // Initialize in dependency order
+            spawner.Initialize(gridMap, registry, _unitsRoot);
+            selectionMgr.Initialize(registry);
+
+            if (rangeVis != null)
+                rangeVis.Initialize(gridMap, registry);
+
+            movementSys.Initialize(gridMap, registry, selectionMgr, rangeVis, spawner);
+
+            if (inputHandler != null && camera != null)
+                inputHandler.Initialize(selectionMgr, movementSys, camera, gridMap, rangeVis);
+            else
+                Debug.LogWarning("[GameBootstrap] TacticalInputHandler or Camera not found — input disabled.");
+
+            Debug.Log("[GameBootstrap] Unit system initialized.");
+
+            // Spawn test units
+            SpawnTestUnits(spawner, gridMap);
+
+            // Focus camera on first player unit
+            if (camera != null && registry.AllUnits.Count > 0)
+            {
+                foreach (var unit in registry.AllUnits)
+                {
+                    if (unit.TeamId == 0) // Focus on first player unit
+                    {
+                        Vector3 focusPos = gridMap.GetCellWorldPosition(unit.GridPosition);
+                        camera.FocusOnPoint(focusPos);
+                        var brain = spawner.GetBrain(unit.UnitId);
+                        if (brain != null)
+                            camera.SetFollowTarget(brain.transform);
+                        Debug.Log($"[GameBootstrap] Camera focused on {unit.Definition.UnitName} at {focusPos}");
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void SpawnTestUnits(UnitSpawner spawner, HexGridMap gridMap)
+        {
+            if (_testSpawns == null || _testSpawns.Length == 0)
+            {
+                Debug.Log("[GameBootstrap] No test spawns configured.");
+                return;
+            }
+
+            foreach (var spawn in _testSpawns)
+            {
+                if (spawn.Definition == null)
+                {
+                    Debug.LogWarning("[GameBootstrap] Test spawn has null definition, skipping.");
+                    continue;
+                }
+
+                var coord = new HexCoord(spawn.SpawnQ, spawn.SpawnR);
+
+                // Verify cell is walkable
+                if (gridMap.TryGetCell(coord, out HexCell cell) && cell.Walkable && !cell.IsOccupied)
+                {
+                    spawner.SpawnUnit(spawn.Definition, coord, spawn.TeamId);
+                }
+                else
+                {
+                    Debug.LogWarning($"[GameBootstrap] Cannot spawn {spawn.Definition.UnitName} at ({spawn.SpawnQ},{spawn.SpawnR}): " +
+                                     "cell is null, unwalkable, or occupied.");
+                }
+            }
+        }
+
+        private void InitializeCombat()
+        {
+            if (_combatRoot == null)
+            {
+                Debug.LogWarning("[GameBootstrap] CombatRoot not assigned, skipping combat init.");
+                return;
+            }
+
+            _combatController = _combatRoot.GetComponentInChildren<CombatSceneController>();
+            if (_combatController == null)
+            {
+                Debug.LogWarning("[GameBootstrap] No CombatSceneController found under CombatRoot. " +
+                                 "Add one to enable turn-based combat.");
+                return;
+            }
+
+            if (_registry == null)
+            {
+                Debug.LogError("[GameBootstrap] UnitRegistry not created — cannot initialize combat.");
+                return;
+            }
+
+            var gridMap = _gridRoot != null ? _gridRoot.GetComponentInChildren<HexGridMap>() : null;
+            var spawner = _systemsRoot != null ? _systemsRoot.GetComponentInChildren<UnitSpawner>() : null;
+            var selectionMgr = _systemsRoot != null ? _systemsRoot.GetComponentInChildren<UnitSelectionManager>() : null;
+
+            if (gridMap == null)
+            {
+                Debug.LogError("[GameBootstrap] HexGridMap not found - cannot initialize combat.");
+                return;
+            }
+
+            if (spawner == null || selectionMgr == null)
+            {
+                Debug.LogError("[GameBootstrap] Unit systems missing - cannot initialize combat.");
+                return;
+            }
+
+            _combatController.Initialize(_registry, gridMap, spawner, selectionMgr);
+            InitializeCombatHud();
+            _combatController.StartCombat();
+            Debug.Log("[GameBootstrap] Combat system initialized and started.");
+        }
+
+        private void InitializeCombatHud()
+        {
+            if (_uiRoot == null || _combatController == null)
+                return;
+
+            var hud = _uiRoot.GetComponent<CombatHudController>();
+            if (hud == null)
+                hud = _uiRoot.gameObject.AddComponent<CombatHudController>();
+
+            hud.Initialize(_combatController);
+            Debug.Log("[GameBootstrap] Combat HUD initialized.");
+        }
+
         private void OnDestroy()
         {
             if (Instance == this)
@@ -102,5 +303,17 @@ namespace TurnBasedTactics.Core
                 Instance = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Serializable spawn data for test/encounter units.
+    /// </summary>
+    [Serializable]
+    public struct SpawnData
+    {
+        public UnitDefinition Definition;
+        public int SpawnQ;
+        public int SpawnR;
+        public int TeamId;
     }
 }

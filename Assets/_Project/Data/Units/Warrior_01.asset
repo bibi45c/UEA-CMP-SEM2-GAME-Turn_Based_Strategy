@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22d40dfd569b0c3479205ae2f5ff3983, type: 3}
+  m_Name: Warrior_01
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Units.UnitDefinition
+  _unitName: Warrior
+  _portrait: {fileID: 0}
+  _modelPrefab: {fileID: 142034, guid: b81ba67e44b1b174d9ef4491f146ee35, type: 3}
+  _weaponPrefab: {fileID: 148790, guid: 92cd70a481699ac4b93380dc1184f864, type: 3}
+  _weaponBoneName: Hand_R
+  _weaponPositionOffset: {x: 0, y: 0, z: 0}
+  _weaponRotationOffset: {x: 0, y: 90, z: 0}
+  _useOriginalMaterials: 0
+  _strength: 14
+  _finesse: 8
+  _intelligence: 6
+  _constitution: 14
+  _wits: 8
+  _baseMovementPoints: 4
+  _baseActionPoints: 1
+  _level: 1
