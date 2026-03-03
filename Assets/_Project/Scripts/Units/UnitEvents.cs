@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TurnBasedTactics.Abilities;
 using TurnBasedTactics.Grid;
 
 namespace TurnBasedTactics.Units
@@ -48,6 +49,7 @@ namespace TurnBasedTactics.Units
         public int RemainingHP;
         public bool WasCritical;
         public bool DidKill;
+        public ElementType Element;
     }
 
     public struct UnitHealedEvent
