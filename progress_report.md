@@ -11,6 +11,60 @@ without diffing code.
 
 ---
 
+## 2026-03-03 (Session 10) — Phase 1 Polish: VFX, Victory/Defeat Screen & Scene Transitions
+
+### Completed (Attack/Heal Visual Feedback)
+- **CameraShake** — Additive Perlin noise camera shake with linear decay. Sits on the camera GO alongside TacticalCamera. ShakeOffset computed on-demand via property getter (no LateUpdate), read by TacticalCamera in `ApplyTransform()`. Stronger shakes override weaker in-progress ones. Three severity tiers: light (0.08, 0.15s), medium (0.15, 0.25s), heavy (0.25, 0.4s).
+- **HitFlashEffect** — MaterialPropertyBlock-based emission flash on damaged units. Caches all Renderers on init (excluding SelectionRing), enables `_EMISSION` keyword on each material, flashes element-colored emission on hit, lerps back to black over configurable duration (default 0.12s). Avoids material instance cloning.
+- **CombatVFXConfig** — Serializable config class holding all tunable VFX parameters (shake intensity/duration, particle counts, flash duration). Includes static `GetElementColor(ElementType)` mapping: Fire=orange, Ice=light blue, Lightning=yellow, Poison=green, Holy=gold, None=white.
+- **CombatVFXManager** — Event-driven orchestrator subscribing to `UnitDamagedEvent` and `UnitHealedEvent`. Dispatches camera shake (severity by HP%), hit flash, and procedural particles. Impact particles: burst of element-colored particles using `Particles/Standard Unlit` shader. Heal particles: rising green-gold cone. Auto-cleanup via `ParticleSystemStopAction.Destroy`.
+- **UnitDamagedEvent.Element** — Added `ElementType Element` field to `UnitDamagedEvent` struct. Updated all 5 publish sites (4 in CombatSceneController, 1 in AIBrain) to pass element data for VFX color selection.
+
+### Completed (Victory/Defeat Results Screen)
+- **CombatResultsScreen** — Full-screen uGUI overlay (ScreenSpaceOverlay, sortingOrder=100) shown when combat ends. Subscribes to `CombatEndedEvent`. Tracks kills via `UnitDiedEvent` + initial unit snapshots (because dead units are unregistered from UnitRegistry before the event fires). Shows: title (gold VICTORY / red DEFEAT), stats (rounds completed, enemies defeated, allies survived), survivor list with HP bars, Restart/Continue buttons. 1.5s delay for death animation, 0.6s background fade-in.
+
+### Completed (Scene Transition Infrastructure)
+- **SceneTransitionManager** — DontDestroyOnLoad singleton with lazy initialization. Creates its own Canvas (sortingOrder=999) with full-screen black Image for fade overlay. Public API: `TransitionToScene(int)`, `TransitionToScene(string)`, `RestartCurrentScene()`. `IsTransitioning` flag blocks double-clicks. Fade uses `Time.unscaledDeltaTime`, `raycastTarget=true` during transition blocks all input. Fade durations: 0.5s out + 0.5s in.
+- **EncounterList + EncounterTracker** — `EncounterList` ScriptableObject defines ordered scene name list. `EncounterTracker` static helper tracks `CurrentEncounterIndex` + `ActiveList`, provides `HasNextEncounter()`, `GetNextSceneName()`, `AdvanceEncounter()`, `Reset()`.
+- **BuildSettingsHelper** — Editor utility that auto-adds project scenes to build settings on first domain reload (when build settings are empty). Menu item: `TurnBasedTactics → Setup Build Settings`. Successfully auto-registered `Combat_RuinsPrototype_01` at build index 0.
+- **CombatResultsScreen button integration** — Restart uses `SceneTransitionManager.Instance.RestartCurrentScene()`, Continue uses `EncounterTracker` to advance to next encounter or falls back to restart.
+
+### Deferred
+- **Sound Effects System** — No audio assets exist in the project. Deferred to future session as highest priority TODO. Will need: CombatAudioManager + EventBus subscriptions + audio clips.
+
+### Files Created This Session
+- `Scripts/Camera/CameraShake.cs` — Perlin noise camera shake with on-demand offset property
+- `Scripts/Units/HitFlashEffect.cs` — MaterialPropertyBlock emission flash on hit
+- `Scripts/Combat/CombatVFXConfig.cs` — VFX tuning parameters + element-to-color mapping
+- `Scripts/Combat/CombatVFXManager.cs` — Event-driven VFX orchestrator
+- `Scripts/UI/CombatResultsScreen.cs` — Victory/Defeat overlay with kill tracking
+- `Scripts/Core/SceneTransitionManager.cs` — DontDestroyOnLoad singleton with fade canvas
+- `Scripts/Core/EncounterList.cs` — EncounterList SO + EncounterTracker static helper
+- `Scripts/Editor/BuildSettingsHelper.cs` — Auto-adds scenes to build settings
+
+### Files Modified This Session
+- `Scripts/Units/UnitEvents.cs` — Added `ElementType Element` to `UnitDamagedEvent`
+- `Scripts/Combat/CombatSceneController.cs` — Added `Element` to 4 damage event publish sites
+- `Scripts/AI/AIBrain.cs` — Added `Element` to AI damage event publish
+- `Scripts/Camera/TacticalCamera.cs` — Reads `CameraShake.ShakeOffset` in `ApplyTransform()`
+- `Scripts/Units/UnitSpawner.cs` — Added `HitFlashEffect` component creation during spawn
+- `Scripts/Core/GameBootstrap.cs` — Added `InitializeCombatVFX()` and `InitializeResultsScreen()` in combat init pipeline
+
+### Key Technical Details
+- **CameraShake timing**: Uses `Time.time` for elapsed calculation in property getter — avoids LateUpdate execution order issues with TacticalCamera
+- **Kill tracking**: Dead units are unregistered from UnitRegistry in `HandleUnitDeath()` BEFORE `UnitDiedEvent` is published. CombatResultsScreen snapshots all unit data at init time, then looks up team/name from snapshot when death event fires.
+- **VFX particle lifetime**: Impact particles use `ParticleSystemStopAction.Destroy` for auto-cleanup. No manual tracking needed.
+- **Scene transition fade**: Uses `Time.unscaledDeltaTime` so fade works even if `TimeScale=0`. Canvas at sortingOrder=999 sits above all game UI.
+- **Build settings auto-setup**: `[InitializeOnLoadMethod]` triggers on domain reload, adds missing scenes only when build settings are completely empty.
+
+### Next Steps
+- [ ] **Sound Effects System** (highest priority) — needs audio asset procurement first
+- [ ] OnGUI HUD migration to uGUI Canvas (low priority)
+- [ ] Weapon offset tuning for Warrior, Archer, SkeletonKnight, GoblinWarrior (low priority)
+- [ ] Create EncounterList SO asset and multi-scene encounter flow (when more scenes exist)
+
+---
+
 ## 2026-03-03 (Session 9) — Line of Sight & DOS2 AP System
 
 ### Completed (Line of Sight)
