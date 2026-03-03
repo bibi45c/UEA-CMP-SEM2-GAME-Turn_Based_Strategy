@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TurnBasedTactics.Abilities;
 using TurnBasedTactics.Combat;
 using TurnBasedTactics.Units;
 
@@ -7,7 +8,7 @@ namespace TurnBasedTactics.UI
 {
     /// <summary>
     /// Lightweight immediate-mode combat HUD.
-    /// Draws a round banner and simple action buttons without scene-authored UI.
+    /// Draws a round banner and dynamic action buttons based on the active unit's abilities.
     /// </summary>
     public class CombatHudController : MonoBehaviour
     {
@@ -91,9 +92,13 @@ namespace TurnBasedTactics.UI
                 ? _combatController.CurrentUnit.Definition.UnitName
                 : "None";
 
+            string apDisplay = _combatController.CurrentUnit != null
+                ? $"  |  AP: {_combatController.CurrentUnit.CurrentAP}/{_combatController.CurrentUnit.MaxAP}"
+                : "";
+
             GUI.Label(
                 new Rect(textX, panelRect.y + 12f * BottomScale, panelRect.width - 32f * BottomScale, 24f * BottomScale),
-                $"Active Unit: {activeUnitName}",
+                $"Active Unit: {activeUnitName}{apDisplay}",
                 _titleStyle);
 
             if (!_combatController.IsCombatActive)
@@ -116,11 +121,15 @@ namespace TurnBasedTactics.UI
 
             bool isAnimating = _combatController.IsActionAnimating;
             bool canMove = !isAnimating && _combatController.ActionSystem.CanMove(_combatController.CurrentUnit);
-            bool canUseMainAction = !isAnimating && _combatController.ActionSystem.CanAct(_combatController.CurrentUnit);
             var queued = _combatController.QueuedAction;
+            var queuedAbility = _combatController.QueuedAbility;
 
             bool previousGuiEnabled = GUI.enabled;
             Color savedBg = GUI.backgroundColor;
+
+            // Get abilities for the current unit
+            var abilities = _combatController.CurrentUnit.Definition.Abilities;
+            int abilityCount = abilities != null ? abilities.Length : 0;
 
             // Show animating state
             if (isAnimating)
@@ -132,43 +141,61 @@ namespace TurnBasedTactics.UI
                 GUI.backgroundColor = AnimatingColor;
                 GUI.enabled = false;
 
-                GUI.Button(new Rect(textX, buttonY, buttonWidth, buttonHeight), "Move", _buttonStyle);
-                GUI.Button(new Rect(textX + buttonWidth + spacing, buttonY, buttonWidth, buttonHeight), "Attack", _buttonStyle);
-                GUI.Button(new Rect(textX + (buttonWidth + spacing) * 2f, buttonY, buttonWidth, buttonHeight), "Heal", _buttonStyle);
-                GUI.Button(new Rect(textX + (buttonWidth + spacing) * 3f, buttonY, buttonWidth, buttonHeight), "Cancel", _buttonStyle);
-                GUI.Button(new Rect(textX + (buttonWidth + spacing) * 4f, buttonY, buttonWidth, buttonHeight), "End Turn", _buttonStyle);
+                float x = textX;
+                GUI.Button(new Rect(x, buttonY, buttonWidth, buttonHeight), "Move (1)", _buttonStyle);
+                x += buttonWidth + spacing;
+
+                for (int i = 0; i < abilityCount; i++)
+                {
+                    if (abilities[i] == null) continue;
+                    GUI.Button(new Rect(x, buttonY, buttonWidth, buttonHeight), $"{abilities[i].AbilityName} ({abilities[i].ApCost})", _buttonStyle);
+                    x += buttonWidth + spacing;
+                }
+
+                GUI.Button(new Rect(x, buttonY, buttonWidth, buttonHeight), "Cancel", _buttonStyle);
+                x += buttonWidth + spacing;
+                GUI.Button(new Rect(x, buttonY, buttonWidth, buttonHeight), "End Turn", _buttonStyle);
 
                 GUI.enabled = previousGuiEnabled;
                 GUI.backgroundColor = savedBg;
                 return;
             }
 
+            float btnX = textX;
+
             // Move button (highlighted when queued)
             GUI.enabled = canMove;
             GUI.backgroundColor = queued == CombatSceneController.QueuedActionType.Move ? ActiveButtonColor : savedBg;
-            if (GUI.Button(new Rect(textX, buttonY, buttonWidth, buttonHeight), "Move", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, buttonY, buttonWidth, buttonHeight), "Move (1)", _buttonStyle))
                 _combatController.QueueMoveAction();
+            btnX += buttonWidth + spacing;
 
-            // Attack button
-            GUI.enabled = canUseMainAction;
-            GUI.backgroundColor = queued == CombatSceneController.QueuedActionType.Attack ? ActiveButtonColor : savedBg;
-            if (GUI.Button(new Rect(textX + buttonWidth + spacing, buttonY, buttonWidth, buttonHeight), "Attack", _buttonStyle))
-                _combatController.QueueAttackAction();
+            // Dynamic ability buttons — per-ability AP check
+            var unit = _combatController.CurrentUnit;
+            for (int i = 0; i < abilityCount; i++)
+            {
+                var ability = abilities[i];
+                if (ability == null) continue;
 
-            // Heal button
-            GUI.backgroundColor = queued == CombatSceneController.QueuedActionType.Heal ? ActiveButtonColor : savedBg;
-            if (GUI.Button(new Rect(textX + (buttonWidth + spacing) * 2f, buttonY, buttonWidth, buttonHeight), "Heal", _buttonStyle))
-                _combatController.QueueHealAction();
+                bool canAfford = _combatController.ActionSystem.CanUseAbility(unit, ability);
+                GUI.enabled = !isAnimating && canAfford;
+                bool isThisQueued = queued == CombatSceneController.QueuedActionType.Ability && queuedAbility == ability;
+                GUI.backgroundColor = isThisQueued ? ActiveButtonColor : savedBg;
+                if (GUI.Button(new Rect(btnX, buttonY, buttonWidth, buttonHeight), $"{ability.AbilityName} ({ability.ApCost})", _buttonStyle))
+                    _combatController.QueueAbility(ability);
+                btnX += buttonWidth + spacing;
+            }
 
             GUI.backgroundColor = savedBg;
             GUI.enabled = previousGuiEnabled;
 
             // Cancel button
-            if (GUI.Button(new Rect(textX + (buttonWidth + spacing) * 3f, buttonY, buttonWidth, buttonHeight), "Cancel", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, buttonY, buttonWidth, buttonHeight), "Cancel", _buttonStyle))
                 _combatController.ClearQueuedAction();
+            btnX += buttonWidth + spacing;
 
             // End Turn button (Space)
-            if (GUI.Button(new Rect(textX + (buttonWidth + spacing) * 4f, buttonY, buttonWidth, buttonHeight), "End Turn", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, buttonY, buttonWidth, buttonHeight), "End Turn", _buttonStyle))
                 _combatController.EndCurrentTurn();
 
             // Show pending move confirmation hint if active, otherwise regular hint
