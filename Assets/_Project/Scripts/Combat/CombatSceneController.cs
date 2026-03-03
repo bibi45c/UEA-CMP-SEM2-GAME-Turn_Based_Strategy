@@ -258,7 +258,8 @@ namespace TurnBasedTactics.Combat
                     DamageAmount = result.TotalDamage,
                     RemainingHP = target.CurrentHP,
                     WasCritical = result.WasCritical,
-                    DidKill = result.DidKill
+                    DidKill = result.DidKill,
+                    Element = _queuedAbility.Element
                 });
                 Debug.Log($"[CombatSceneController] {caster.Definition.UnitName} used {_queuedAbility.AbilityName} on {target.Definition.UnitName} for {result.TotalDamage} damage.");
             }
@@ -368,7 +369,8 @@ namespace TurnBasedTactics.Combat
                         DamageAmount = tickResult.TotalDamage,
                         RemainingHP = unit.CurrentHP,
                         WasCritical = false,
-                        DidKill = tickResult.DidKill
+                        DidKill = tickResult.DidKill,
+                        Element = ElementType.None
                     });
                 }
 
@@ -404,7 +406,8 @@ namespace TurnBasedTactics.Combat
                         DamageAmount = surfaceResult.TotalDamage,
                         RemainingHP = unit.CurrentHP,
                         WasCritical = false,
-                        DidKill = surfaceResult.DidKill
+                        DidKill = surfaceResult.DidKill,
+                        Element = ElementType.None
                     });
                 }
 
@@ -457,7 +460,8 @@ namespace TurnBasedTactics.Combat
                         DamageAmount = surfaceResult.TotalDamage,
                         RemainingHP = movedUnit.CurrentHP,
                         WasCritical = false,
-                        DidKill = surfaceResult.DidKill
+                        DidKill = surfaceResult.DidKill,
+                        Element = ElementType.None
                     });
 
                     if (surfaceResult.DidKill)

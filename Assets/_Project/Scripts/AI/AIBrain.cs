@@ -276,7 +276,8 @@ namespace TurnBasedTactics.AI
                     DamageAmount = result.TotalDamage,
                     RemainingHP = target.CurrentHP,
                     WasCritical = result.WasCritical,
-                    DidKill = result.DidKill
+                    DidKill = result.DidKill,
+                    Element = ability.Element
                 });
 
                 Debug.Log($"[AIBrain] {attacker.Definition.UnitName} uses {ability.AbilityName} on {target.Definition.UnitName} " +

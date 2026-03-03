@@ -20,6 +20,7 @@ namespace TurnBasedTactics.Camera
         private float _targetYaw;
         private bool _hasFollowTarget;
         private global::UnityEngine.Camera _cam;
+        private CameraShake _cameraShake;
 
         public void SetFollowTarget(Transform target)
         {
@@ -80,6 +81,7 @@ namespace TurnBasedTactics.Camera
         private void Awake()
         {
             _cam = GetComponent<global::UnityEngine.Camera>();
+            _cameraShake = GetComponent<CameraShake>();
             _currentZoom = _config.DefaultZoomDistance;
             _targetZoom = _config.DefaultZoomDistance;
             _currentYaw = transform.eulerAngles.y;
@@ -127,6 +129,11 @@ namespace TurnBasedTactics.Camera
             var rotation = Quaternion.Euler(_config.Pitch, _currentYaw, 0f);
             var offset = rotation * (Vector3.back * _currentZoom);
             transform.position = Vector3.Lerp(transform.position, targetFocus + offset, _config.PanDamping * Time.deltaTime);
+
+            // Additive camera shake (computed by CameraShake in its own LateUpdate)
+            if (_cameraShake != null)
+                transform.position += _cameraShake.ShakeOffset;
+
             transform.LookAt(targetFocus);
         }
     }
