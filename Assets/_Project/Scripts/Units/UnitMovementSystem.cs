@@ -18,6 +18,7 @@ namespace TurnBasedTactics.Units
         private MovementRangeVisualizer _rangeVisualizer;
         private UnitSpawner _spawner;
         private bool _isUnitMoving;
+        private int _lastHexesMoved;
 
         private readonly HexPathfinder.PathConfig _pathConfig = HexPathfinder.PathConfig.Default;
 
@@ -73,6 +74,7 @@ namespace TurnBasedTactics.Units
 
             HexCoord from = unit.GridPosition;
             HexCoord to = path[path.Count - 1];
+            _lastHexesMoved = path.Count - 1;
 
             // 1. Update grid state immediately (authoritative)
             _gridMap.SetOccupant(from, -1);
@@ -131,10 +133,11 @@ namespace TurnBasedTactics.Units
             EventBus.Publish(new UnitMoveCompletedEvent
             {
                 UnitId = unit.UnitId,
-                FinalPosition = unit.GridPosition
+                FinalPosition = unit.GridPosition,
+                HexesMoved = _lastHexesMoved
             });
 
-            Debug.Log($"[Movement] {unit.Definition.UnitName} arrived at {unit.GridPosition}");
+            Debug.Log($"[Movement] {unit.Definition.UnitName} arrived at {unit.GridPosition} ({_lastHexesMoved} hexes)");
         }
     }
 }

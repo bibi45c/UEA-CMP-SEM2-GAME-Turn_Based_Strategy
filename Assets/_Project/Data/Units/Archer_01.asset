@@ -26,5 +26,7 @@ MonoBehaviour:
   _constitution: 8
   _wits: 12
   _baseMovementPoints: 5
-  _baseActionPoints: 1
+  _baseActionPoints: 6
   _level: 1
+  _abilities:
+  - {fileID: 11400000, guid: b8d615cec9447914f8aae79539d742d3, type: 2}

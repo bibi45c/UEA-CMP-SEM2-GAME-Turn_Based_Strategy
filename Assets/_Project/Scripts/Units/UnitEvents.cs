@@ -37,6 +37,7 @@ namespace TurnBasedTactics.Units
     {
         public int UnitId;
         public HexCoord FinalPosition;
+        public int HexesMoved;
     }
 
     public struct UnitDamagedEvent
@@ -61,5 +62,18 @@ namespace TurnBasedTactics.Units
     {
         public int UnitId;
         public HexCoord Position;
+    }
+
+    public struct StatusAppliedEvent
+    {
+        public int TargetUnitId;
+        public string StatusName;
+        public int Duration;
+    }
+
+    public struct StatusExpiredEvent
+    {
+        public int TargetUnitId;
+        public string StatusName;
     }
 }

@@ -84202,7 +84202,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Units.UnitSpawner
   _defaultAnimator: {fileID: 9100000, guid: 0faaaf86d1517dd45af14667bdae9dab, type: 2}
   _defaultMaterial: {fileID: 2100000, guid: 2a12d3fc0532ba64e972160db18dfd99, type: 2}
-  _propBoneConfig: {fileID: 11400000, guid: 78d20d05e4a7448f69124477d9830caa, type: 2}
 --- !u!1001 &1615556816
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -85017,6 +85016,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8264a929aab82754092a3d79a5d08d21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Combat.CombatSceneController
+  _surfaceDefinitions:
+  - {fileID: 11400000, guid: 59f26a951a8c9524ea55dcd1d162c52a, type: 2}
+  - {fileID: 11400000, guid: 0efd2a841937df341875aaa2acacab7f, type: 2}
+  - {fileID: 11400000, guid: efb1a3468ebfb664abf069ec1144c1fb, type: 2}
+  - {fileID: 11400000, guid: 0f5c89a110ca1f54999ed166c877a270, type: 2}
 --- !u!1001 &1627996278
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -98495,6 +98499,7 @@ GameObject:
   - component: {fileID: 1893585533}
   - component: {fileID: 1893585532}
   - component: {fileID: 1893585534}
+  - component: {fileID: 1893585535}
   m_Layer: 0
   m_Name: GridSystem
   m_TagString: Untagged
@@ -98562,6 +98567,28 @@ MonoBehaviour:
     m_Bits: 4294967295
   _localRayHeight: 2
   _surfaceOffset: 0.04
+--- !u!114 &1893585535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1893585530}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f063b06868ec1544ab3a1b2655ce1ad6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Grid.CoverSetup
+  _coverEntries:
+  - Q: 41
+    R: 42
+    CoverType: 1
+  - Q: 40
+    R: 42
+    CoverType: 1
+  - Q: 42
+    R: 43
+    CoverType: 2
 --- !u!1001 &1894517870
 PrefabInstance:
   m_ObjectHideFlags: 0
