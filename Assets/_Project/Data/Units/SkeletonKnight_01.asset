@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22d40dfd569b0c3479205ae2f5ff3983, type: 3}
+  m_Name: SkeletonKnight_01
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Units.UnitDefinition
+  _unitName: Skeleton Knight
+  _portrait: {fileID: 0}
+  _modelPrefab: {fileID: 1246891314395918, guid: cb4ff29f6f657bc4d94ed49c50a70be2, type: 3}
+  _weaponPrefab: {fileID: 1858868361684802, guid: ba338d75bcdbe5a44a3c09f4f122fad0, type: 3}
+  _weaponBoneName: Hand_R
+  _weaponPositionOffset: {x: 0, y: 0, z: 0}
+  _weaponRotationOffset: {x: 0, y: 0, z: 0}
+  _useOriginalMaterials: 1
+  _strength: 14
+  _finesse: 8
+  _intelligence: 5
+  _constitution: 12
+  _wits: 7
+  _baseMovementPoints: 3
+  _baseActionPoints: 1
+  _level: 1
