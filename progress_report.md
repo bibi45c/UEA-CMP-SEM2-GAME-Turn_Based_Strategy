@@ -11,6 +11,70 @@ without diffing code.
 
 ---
 
+## 2026-03-03 (Session 6) — UI Click-Through Fix, Move Confirmation, Weapon Binding Research
+
+### Completed
+- **UI click-through fix** — Clicking OnGUI HUD buttons (End Turn, Move, etc.) no longer passes through to the game world. Dual-layer detection: `EventSystem.IsPointerOverGameObject()` for uGUI canvases + `CombatHudController.IsMouseOverHud` static property for OnGUI rects. Added `EnsureEventSystem()` in GameBootstrap creating EventSystem + InputSystemUIInputModule (scene had none).
+- **Two-click move confirmation** — Combat move now requires clicking the same hex twice to confirm. First click shows green cylinder marker + hint text "Click again to confirm move to (Q, R)". Click different hex updates pending target. Cancel/EndTurn/turn change clears pending. Non-combat retains immediate movement.
+- **Input.mousePosition fix** — `CombatHudController.Update()` migrated from legacy `Input.mousePosition` to `Mouse.current.position.ReadValue()` (New Input System API). Eliminates `InvalidOperationException` at runtime.
+- **Weapon binding research** — Investigated Synty PropBone system. Confirmed it's designed for SwordCombat pack weapons only; PolygonDungeon/PolygonDungeonRealms weapons need manual offset tuning. Created `WeaponBindingGuide.md` reference document. Mage staff manually tuned: Pos(0.15, 0.05, 0) Rot(75, 22, 180).
+
+### Files Modified This Session
+- `Scripts/Units/TacticalInputHandler.cs` — Added `IsPointerOverUI()`, pending move state (`_pendingMoveTarget`, `_pendingMoveMarker`, `PendingActionHint`), `TryMoveWithConfirmation()`, `SetPendingMove()`, `ClearPendingMove()`
+- `Scripts/UI/CombatHudController.cs` — Added `IsMouseOverHud` static property, `Update()` with `Mouse.current.position`, hint label shows `PendingActionHint`
+- `Scripts/Core/GameBootstrap.cs` — Added `EnsureEventSystem()` creating EventSystem + InputSystemUIInputModule
+- `Scripts/Combat/CombatSceneController.cs` — Minor adjustments for animation blocking
+- `Data/Units/Mage_01.asset` — Weapon offset tuned: Pos(0.15, 0.05, 0) Rot(75, 22, 180)
+
+### Files Created This Session
+- `WeaponBindingGuide.md` — Synty Prop Bone system reference, weapon prefab paths, animation clip inventory
+
+### Weapon Offset Status
+| Unit | Weapon | Tuned? |
+|------|--------|--------|
+| Warrior | Straightsword | No — needs Play Mode tuning |
+| Archer | Spear | No — needs Play Mode tuning |
+| Mage | Staff | Yes — Pos(0.15, 0.05, 0) Rot(75, 22, 180) |
+| Skeleton Knight | Large Sword | No — needs Play Mode tuning |
+| Goblin Warrior | Small Axe | No — needs Play Mode tuning |
+
+---
+
+## 2026-03-03 (Session 5) — Enemy AI, HP Bars, Floating Damage Text, Turn Order UI
+
+### Completed
+- **Enemy AI system** — `AI/AIBrain.cs` (MonoBehaviour with coroutine-driven turn execution) + `AI/AIScorer.cs` (stateless scoring: target priority by HP/distance/kill potential, movement positioning). AI evaluates targets, moves toward best target, attacks if in melee range. Paced with configurable delays (think=0.5s, move=0.3s, attack=0.8s) for visual readability. Replaces `AutoEndEnemyTurn()` placeholder.
+- **Floating damage text** — `UI/FloatingDamageText.cs`. WorldSpace Canvas text that rises, drifts randomly, and fades out. Red for damage, gold for crits (larger + bold), green for heals. Black outline for readability. Self-destructs after 1.2s lifetime.
+- **Unit HP bars** — `UI/UnitWorldUI.cs`. WorldSpace Canvas HP bar attached to each unit's head. Billboard (always faces camera). Green bar for players (color shifts green→yellow→red as HP drops), red bar for enemies. Smooth fill lerp animation. Shows unit name above bar.
+- **Combat UI Manager** — `UI/CombatUIManager.cs`. Subscribes to `UnitDamagedEvent`/`UnitHealedEvent`/`UnitDiedEvent`/`UnitSpawnedEvent` via EventBus. Creates HP bars on spawn, updates on damage/heal, removes on death. Spawns floating text at unit positions.
+- **Turn order bar** — `UI/TurnOrderBar.cs`. uGUI ScreenSpace-Overlay Canvas. Horizontal bar anchored top-center. Shows all alive units in initiative order with name + HP. Active unit highlighted with gold border. Blue slots for player, red for enemy. Auto-refreshes on turn/round changes and unit death. Slot width auto-scales (80→52px min) when many units are present to prevent overflow (~60% max screen width).
+- **Party portrait panel** — `UI/PartyPortraitPanel.cs`. Left-side vertical panel showing player team units. Each portrait (140×60px) has unit name, HP bar (color shifts green→red below 35%), and clickable button to select that unit. Gold border = active turn unit, blue = selected, dark = normal. Subscribes to TurnStartedEvent, UnitSelectedEvent, UnitDeselectedEvent, damage/heal/death events.
+- **UI layout overhaul** — Round banner moved to top-left (12,12). Turn order bar → top-center. Party portraits → left side below Round banner. Right-top reserved for minimap (future).
+- **CombatSceneController AI integration** — Replaced `AutoEndEnemyTurn()` with `AIBrain.ExecuteTurn()`. AI manages its own action spending (move+attack), `OnUnitMoveCompleted` now skips action spending for enemy units. Added `IsEnemyActing` property.
+- **GameBootstrap wiring** — Added `InitializeCombatWorldUI()`, `InitializeTurnOrderBar()`, and `InitializePartyPortraits()` to initialization chain.
+
+### Files Created This Session
+- `Scripts/AI/AIBrain.cs` — AI turn execution (coroutine: pick target → move → attack → end turn)
+- `Scripts/AI/AIScorer.cs` — Target scoring and movement positioning logic
+- `Scripts/UI/FloatingDamageText.cs` — Animated floating combat text
+- `Scripts/UI/UnitWorldUI.cs` — WorldSpace HP bar per unit
+- `Scripts/UI/CombatUIManager.cs` — EventBus-driven manager for HP bars and floating text
+- `Scripts/UI/TurnOrderBar.cs` — Initiative order display bar
+- `Scripts/UI/PartyPortraitPanel.cs` — Left-side clickable party portraits with HP bars
+
+### Files Modified This Session
+- `Scripts/Combat/CombatSceneController.cs` — Added AIBrain integration, replaced AutoEndEnemyTurn, added IsEnemyActing, enemy move event filtering
+- `Scripts/Core/GameBootstrap.cs` — Added InitializeCombatWorldUI(), InitializeTurnOrderBar(), InitializePartyPortraits()
+- `Scripts/UI/CombatHudController.cs` — Moved Round banner to top-left (12,12)
+
+### Key Technical Details
+- **AI decision loop**: Pick best target (ScoreTarget: kill potential +80, low HP +0~50, distance -5/hex) → GetReachable for movement → FindBestMoveToward (minimize distance to target) → BasicAttackSystem.Execute if in range 1.
+- **AI manages own actions**: AIBrain calls `_actionSystem.SpendMoveAction()` and `_actionSystem.SpendMainAction()` directly, then calls `_combatController.EndCurrentTurn()` when done. `OnUnitMoveCompleted` in CombatSceneController skips non-player units to avoid double-spending.
+- **HP bar billboard**: `UnitWorldUI.Update()` sets `transform.rotation = Camera.main.transform.rotation` every frame. Position maintained via `LateUpdate()` at localPosition `(0, 2.0, 0)` above parent unit.
+- **Turn order auto-scale**: `ComputeSlotWidth()` calculates `maxBarWidth = referenceResolution.x * 0.6 = 1152px`, divides by unit count with spacing. Clamps between 52~80px per slot. Handles 10+ units gracefully.
+
+---
+
 ## 2026-03-03 (Session 4) — Movement Visualizer Fix & Combat Bootstrap Expansion
 
 ### Completed
@@ -98,31 +162,29 @@ without diffing code.
 ## Known Issues
 
 - [x] ~~**Archer model** — Still uses SidekickCharacters model, may have pink shader issues.~~ Fixed Session 4: swapped to PolygonDungeonRealms character.
-- [ ] **Enemy AI** — Enemies auto-skip turns (no AI). `CombatSceneController.AutoEndEnemyTurn()` just calls `EndCurrentTurn()` after 0.1s.
+- [x] ~~**Enemy AI** — Enemies auto-skip turns (no AI).~~ Fixed Session 5: AIBrain + AIScorer implemented.
+- [x] ~~**Damage feedback missing** — No floating damage numbers or HP bars above units.~~ Fixed Session 5: FloatingDamageText + UnitWorldUI.
+- [x] ~~**No turn order display** — No initiative bar showing upcoming turn order.~~ Fixed Session 5: TurnOrderBar.
 - [ ] **Unit death edge cases** — Verify death during active turn doesn't cause NullRef.
 - [ ] **GoblinWarrior weapon position** — Small Axe may need bone position adjustment.
-- [ ] **Damage feedback missing** — No floating damage numbers or HP bars above units.
-- [ ] **No turn order display** — No initiative bar showing upcoming turn order.
+- [ ] **OnGUI HUD migration** — CombatHudController still uses OnGUI, should migrate to uGUI Canvas.
 
 ---
 
 ## Next Steps (Priority Order)
 
 ### Immediate (Phase 1 Core Combat Loop)
-1. **Enemy AI** — `AI/AIBrain.cs`, `AIScorer.cs`. Simple: evaluate targets by distance+HP, move toward nearest, attack if in range. Wire into `CombatSceneController.OnTurnStarted` for enemy turns.
-2. **Ability System** — `Abilities/AbilityDefinition.cs` (SO: name, range, damage, element, cost, targetType), `AbilityExecutor.cs`. Replace hardcoded `BasicAttackSystem`/`HealSkillSystem` with data-driven abilities.
-3. **Better UI (uGUI)** — Replace OnGUI with proper Canvas-based UI. Unit HP bars, ability bar, turn order display, floating damage numbers.
+1. **Ability System** — `Abilities/AbilityDefinition.cs` (SO: name, range, damage, element, cost, targetType), `AbilityExecutor.cs`. Replace hardcoded `BasicAttackSystem`/`HealSkillSystem` with data-driven abilities.
+2. **Death animation** — Play death animation before despawn, fade out.
 4. **Status Effects** — Burning, Poisoned, Frozen, Blessed. Tied to surface system.
 5. **Surface System** — Cells have optional surface (Fire, Ice, Poison, Oil). Abilities create/interact with surfaces.
 6. **Cover System** — HalfCover -25% dmg, FullCover blocks ranged. Directional check.
 7. **Line of Sight** — Ranged attack LoS validation using hex raycasting.
 
 ### Later (Phase 1 Polish)
-- Damage numbers / floating combat text
-- Turn order UI (initiative bar)
-- Unit HP bars above character models
 - Better attack/heal visual feedback (VFX, camera shake)
 - Victory/Defeat screens
+- Sound effects (attack, move, select, turn switch)
 - Multiple encounters / scene transitions
 
 ---
@@ -147,8 +209,8 @@ Assets/_Project/
     Combat/     CombatSceneController, TurnManager, ActionSystem, BasicAttackSystem, HealSkillSystem, DamageResolver, CombatEvents
     Units/      UnitDefinition, UnitRuntime, UnitStats, UnitRegistry, UnitSpawner, UnitBrain, UnitVisual, UnitSelectionManager, UnitMovementSystem, MovementRangeVisualizer, TacticalInputHandler, UnitEvents
     Camera/     TacticalCamera, TacticalCameraInputHandler, TacticalCameraConfig
-    UI/         CombatHudController
-    AI/         (empty — next to build)
+    UI/         CombatHudController, CombatUIManager, FloatingDamageText, UnitWorldUI, TurnOrderBar, PartyPortraitPanel
+    AI/         AIBrain, AIScorer
     Abilities/  (empty — next to build)
   Data/
     Units/      Warrior_01, Archer_01, Mage_01, SkeletonKnight_01, GoblinWarrior_01

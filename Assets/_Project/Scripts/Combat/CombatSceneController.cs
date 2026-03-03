@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using TurnBasedTactics.AI;
 using TurnBasedTactics.Core;
 using TurnBasedTactics.Grid;
 using TurnBasedTactics.Units;
@@ -38,6 +39,7 @@ namespace TurnBasedTactics.Combat
         private ActionSystem _actionSystem;
         private BasicAttackSystem _basicAttackSystem;
         private HealSkillSystem _healSkillSystem;
+        private AIBrain _aiBrain;
 
         private CombatState _state = CombatState.Idle;
         private QueuedActionType _queuedAction = QueuedActionType.None;
@@ -52,6 +54,7 @@ namespace TurnBasedTactics.Combat
         public bool IsPlayerTurn => _state == CombatState.PlayerTurn;
         public bool IsCombatActive => _state == CombatState.PlayerTurn || _state == CombatState.EnemyTurn;
         public bool IsActionAnimating => _actionAnimating;
+        public bool IsEnemyActing => _state == CombatState.EnemyTurn && _aiBrain != null && _aiBrain.IsExecuting;
         public UnitRuntime CurrentUnit => _turnManager?.CurrentUnit;
 
         public void Initialize(
@@ -68,6 +71,13 @@ namespace TurnBasedTactics.Combat
             _turnManager = new TurnManager(registry);
             _basicAttackSystem = new BasicAttackSystem();
             _healSkillSystem = new HealSkillSystem();
+
+            // Initialize AI
+            _aiBrain = GetComponent<AIBrain>();
+            if (_aiBrain == null)
+                _aiBrain = gameObject.AddComponent<AIBrain>();
+            _aiBrain.Initialize(registry, gridMap, spawner, _actionSystem, _basicAttackSystem, this);
+
             _initialized = true;
 
             EventBus.Subscribe<TurnStartedEvent>(OnTurnStarted);
@@ -334,15 +344,19 @@ namespace TurnBasedTactics.Combat
             else
             {
                 _state = CombatState.EnemyTurn;
-                Debug.Log($"[CombatSceneController] -> Enemy turn (Unit id={evt.UnitId}) -> auto-skipping (no AI yet)");
-                Invoke(nameof(AutoEndEnemyTurn), 0.1f);
-            }
-        }
+                Debug.Log($"[CombatSceneController] -> Enemy turn (Unit id={evt.UnitId})");
 
-        private void AutoEndEnemyTurn()
-        {
-            if (_state == CombatState.EnemyTurn)
-                EndCurrentTurn();
+                var unit = _registry.GetUnit(evt.UnitId);
+                if (unit != null && _aiBrain != null)
+                {
+                    _aiBrain.ExecuteTurn(unit);
+                }
+                else
+                {
+                    // Fallback: end turn immediately if AI not available
+                    EndCurrentTurn();
+                }
+            }
         }
 
         private void OnUnitMoveCompleted(UnitMoveCompletedEvent evt)
@@ -352,6 +366,10 @@ namespace TurnBasedTactics.Combat
 
             var unit = _turnManager.CurrentUnit;
             if (unit == null || unit.UnitId != evt.UnitId)
+                return;
+
+            // AI manages its own action spending — only handle player moves here
+            if (unit.TeamId != TurnManager.PlayerTeamId)
                 return;
 
             if (_actionSystem.CanMove(unit))
