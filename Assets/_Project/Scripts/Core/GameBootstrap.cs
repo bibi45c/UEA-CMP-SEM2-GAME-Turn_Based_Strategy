@@ -1,25 +1,29 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using TurnBasedTactics.Grid;
 using TurnBasedTactics.Units;
 using TurnBasedTactics.Combat;
 using TurnBasedTactics.UI;
+using TurnBasedTactics.Exploration;
 using TacticalCam = global::TurnBasedTactics.Camera.TacticalCamera;
 using CameraShake = global::TurnBasedTactics.Camera.CameraShake;
 
 namespace TurnBasedTactics.Core
 {
+    public enum GamePhase { Exploration, Combat }
+
     /// <summary>
     /// Scene entry point. Initializes core services and wires up subsystems.
-    /// Attach to the SceneContext GameObject in every gameplay scene.
+    /// Supports two-phase gameplay: Exploration (free movement) → Combat (grid-based turns).
     ///
     /// Initialization order:
     ///   1. GameSession (create or reuse)
     ///   2. EventBus (clear stale handlers)
     ///   3. Validate scene root references
     ///   4. Grid system
-    ///   5. Unit system (spawner, selection, movement, input)
+    ///   5. Exploration OR Combat depending on _startInExploration flag
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
@@ -41,12 +45,31 @@ namespace TurnBasedTactics.Core
         [Header("UI")]
         [SerializeField] private HUDSpriteConfig _hudSpriteConfig;
 
+        [Header("Game Phase")]
+        [Tooltip("Start in exploration mode before combat")]
+        [SerializeField] private bool _startInExploration = true;
+
+        [Header("Exploration Config")]
+        [Tooltip("World position for the party to spawn (dungeon entrance)")]
+        [SerializeField] private Vector3 _explorationSpawnPos = new Vector3(-3.57f, -15.01f, -266.54f);
+
+        [Tooltip("Party leader unit definition (controlled by player)")]
+        [SerializeField] private UnitDefinition _explorationLeader;
+
+        [Tooltip("Follower unit definitions (auto-follow the leader)")]
+        [SerializeField] private UnitDefinition[] _explorationFollowers;
+
         [Header("Test Spawn Data")]
         [SerializeField] private SpawnData[] _testSpawns;
 
         // Runtime references
         private UnitRegistry _registry;
         private CombatSceneController _combatController;
+        private ExplorationController _explorationController;
+        private ExplorationHUD _explorationHUD;
+        private ExplorationMinimap _explorationMinimap;
+        private SpawnData[] _combatSpawnOverrides;
+        private GamePhase _currentPhase;
 
         // --- Public accessors for other systems ---
         public Transform SystemsRoot => _systemsRoot;
@@ -57,6 +80,8 @@ namespace TurnBasedTactics.Core
         public Transform CombatRoot => _combatRoot;
         public Transform CameraRoot => _cameraRoot;
         public Transform UIRoot => _uiRoot;
+        public GamePhase CurrentPhase => _currentPhase;
+        public ExplorationController ExplorationCtrl => _explorationController;
 
         /// <summary>Singleton-like accessor for the current scene bootstrap.</summary>
         public static GameBootstrap Instance { get; private set; }
@@ -72,6 +97,18 @@ namespace TurnBasedTactics.Core
 
             Instance = this;
             InitializeCore();
+        }
+
+        private void Start()
+        {
+            // Apply exploration camera zoom after all Awake() calls have finished
+            // (TacticalCamera.Awake resets zoom to defaults, so we must set ours in Start)
+            if (_currentPhase == GamePhase.Exploration)
+            {
+                var camera = _cameraRoot != null ? _cameraRoot.GetComponentInChildren<TacticalCam>() : null;
+                if (camera != null)
+                    camera.SetZoom(5f, instant: true);
+            }
         }
 
         private void InitializeCore()
@@ -110,16 +147,23 @@ namespace TurnBasedTactics.Core
                 Debug.LogWarning("[GameBootstrap] No HUDSpriteConfig assigned — UI will use fallback rectangles.");
             }
 
-            // 4. Grid
+            // 4. Grid (always init — needed for combat later even if starting in exploration)
             InitializeGrid();
 
-            // 5. Units
-            InitializeUnits();
+            // 5. Phase-dependent initialization
+            if (_startInExploration)
+            {
+                _currentPhase = GamePhase.Exploration;
+                InitializeExploration();
+            }
+            else
+            {
+                _currentPhase = GamePhase.Combat;
+                InitializeUnits();
+                InitializeCombat();
+            }
 
-            // 6. Combat (TurnManager + ActionSystem)
-            InitializeCombat();
-
-            Debug.Log("[GameBootstrap] === Core initialization complete ===");
+            Debug.Log($"[GameBootstrap] === Core initialization complete (Phase: {_currentPhase}) ===");
         }
 
         private void ValidateRoots()
@@ -144,6 +188,126 @@ namespace TurnBasedTactics.Core
             esGO.AddComponent<EventSystem>();
             esGO.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
             Debug.Log("[GameBootstrap] EventSystem created.");
+        }
+
+        private void InitializeExploration()
+        {
+            Debug.Log("[GameBootstrap] === Initializing Exploration Phase ===");
+
+            if (_explorationLeader == null)
+            {
+                Debug.LogError("[GameBootstrap] Exploration leader not assigned! Falling back to combat.");
+                _currentPhase = GamePhase.Combat;
+                InitializeUnits();
+                InitializeCombat();
+                return;
+            }
+
+            // Create ExplorationController on CombatRoot (reuse the root object)
+            var explorationRoot = _combatRoot != null ? _combatRoot : _systemsRoot;
+            _explorationController = explorationRoot.GetComponent<ExplorationController>();
+            if (_explorationController == null)
+                _explorationController = explorationRoot.gameObject.AddComponent<ExplorationController>();
+
+            // Get animator controller and default material from UnitSpawner
+            var spawner = _systemsRoot != null ? _systemsRoot.GetComponentInChildren<UnitSpawner>() : null;
+            RuntimeAnimatorController animController = null;
+            Material defaultMaterial = null;
+            if (spawner != null)
+            {
+                var animField = typeof(UnitSpawner).GetField("_defaultAnimator",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (animField != null)
+                    animController = animField.GetValue(spawner) as RuntimeAnimatorController;
+
+                var matField = typeof(UnitSpawner).GetField("_defaultMaterial",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (matField != null)
+                    defaultMaterial = matField.GetValue(spawner) as Material;
+            }
+
+            _explorationController.Initialize(
+                _explorationLeader,
+                _explorationFollowers,
+                _explorationSpawnPos,
+                animController,
+                defaultMaterial);
+
+            // Spawn enemy NPCs at their combat grid positions
+            SpawnExplorationEnemies();
+
+            // Set up encounter trigger — transition to combat when player approaches enemies
+            _explorationController.SetEncounterCallback(TransitionToCombat, 8f);
+
+            // Focus camera on the exploration leader
+            var camera = _cameraRoot != null ? _cameraRoot.GetComponentInChildren<TacticalCam>() : null;
+            if (camera != null && _explorationController.Leader != null)
+            {
+                camera.FocusOnPoint(_explorationController.PartySpawnPosition);
+                camera.SetFollowTarget(_explorationController.Leader.transform);
+            }
+
+            // Initialize exploration UI
+            InitializeExplorationHUD();
+            InitializeExplorationMinimap();
+
+            Debug.Log("[GameBootstrap] Exploration phase initialized.");
+        }
+
+        /// <summary>
+        /// Transition from exploration to combat.
+        /// Despawns exploration party, spawns grid-based combat units, starts combat.
+        /// </summary>
+        public void TransitionToCombat()
+        {
+            if (_currentPhase != GamePhase.Exploration)
+            {
+                Debug.LogWarning("[GameBootstrap] Not in exploration phase, cannot transition to combat.");
+                return;
+            }
+
+            Debug.Log("[GameBootstrap] === Transitioning to Combat ===");
+
+            // 1. Capture exploration unit positions BEFORE despawning
+            List<ExplorationController.ExplorationUnitInfo> explorationUnits = null;
+            if (_explorationController != null)
+                explorationUnits = _explorationController.GetAllUnitData();
+
+            // 2. End exploration and despawn visuals
+            if (_explorationController != null)
+            {
+                _explorationController.EndExploration();
+                _explorationController.DespawnParty();
+            }
+
+            // 3. Clean up exploration UI
+            if (_explorationHUD != null)
+            {
+                _explorationHUD.Cleanup();
+                _explorationHUD = null;
+            }
+            if (_explorationMinimap != null)
+            {
+                _explorationMinimap.Cleanup();
+                _explorationMinimap = null;
+            }
+
+            // 4. Build dynamic spawn data from captured exploration positions
+            if (explorationUnits != null && explorationUnits.Count > 0)
+                _combatSpawnOverrides = BuildCombatSpawnsFromExploration(explorationUnits);
+
+            _currentPhase = GamePhase.Combat;
+
+            // 5. Initialize combat systems using exploration-derived positions
+            InitializeUnits();
+            InitializeCombat();
+
+            // 6. Reset camera zoom from exploration (5) to combat (12)
+            var camera = _cameraRoot != null ? _cameraRoot.GetComponentInChildren<TacticalCam>() : null;
+            if (camera != null)
+                camera.SetZoom(12f, instant: false);
+
+            Debug.Log("[GameBootstrap] Combat transition complete.");
         }
 
         private void InitializeGrid()
@@ -256,17 +420,21 @@ namespace TurnBasedTactics.Core
 
         private void SpawnTestUnits(UnitSpawner spawner, HexGridMap gridMap)
         {
-            if (_testSpawns == null || _testSpawns.Length == 0)
+            // Use exploration-derived positions if available, otherwise fall back to fixed test spawns
+            var spawns = _combatSpawnOverrides ?? _testSpawns;
+            _combatSpawnOverrides = null; // Clear after use
+
+            if (spawns == null || spawns.Length == 0)
             {
-                Debug.Log("[GameBootstrap] No test spawns configured.");
+                Debug.Log("[GameBootstrap] No spawns configured.");
                 return;
             }
 
-            foreach (var spawn in _testSpawns)
+            foreach (var spawn in spawns)
             {
                 if (spawn.Definition == null)
                 {
-                    Debug.LogWarning("[GameBootstrap] Test spawn has null definition, skipping.");
+                    Debug.LogWarning("[GameBootstrap] Spawn has null definition, skipping.");
                     continue;
                 }
 
@@ -573,6 +741,159 @@ namespace TurnBasedTactics.Core
 
             resultsScreen.Initialize(_registry, _combatController);
             Debug.Log("[GameBootstrap] Combat Results Screen initialized.");
+        }
+
+        private void SpawnExplorationEnemies()
+        {
+            if (_testSpawns == null || _testSpawns.Length == 0 || _explorationController == null)
+                return;
+
+            var gridMap = _gridRoot != null ? _gridRoot.GetComponentInChildren<HexGridMap>() : null;
+            if (gridMap == null || !gridMap.IsInitialized)
+            {
+                Debug.LogWarning("[GameBootstrap] Grid not ready, cannot spawn exploration enemies.");
+                return;
+            }
+
+            var enemyDefs = new List<UnitDefinition>();
+            var enemyPositions = new List<Vector3>();
+
+            foreach (var spawn in _testSpawns)
+            {
+                if (spawn.Definition == null || spawn.TeamId == 0) continue;
+
+                var coord = new HexCoord(spawn.SpawnQ, spawn.SpawnR);
+                if (gridMap.TryGetCell(coord, out HexCell cell))
+                {
+                    enemyDefs.Add(spawn.Definition);
+                    enemyPositions.Add(gridMap.GetCellWorldPosition(coord));
+                }
+            }
+
+            if (enemyDefs.Count > 0)
+            {
+                _explorationController.SpawnEnemies(enemyDefs.ToArray(), enemyPositions.ToArray());
+                Debug.Log($"[GameBootstrap] Spawned {enemyDefs.Count} enemies for exploration.");
+            }
+        }
+
+        /// <summary>
+        /// Convert exploration unit positions to hex-grid SpawnData for combat.
+        /// Uses nearest walkable cell to each unit's current world position.
+        /// </summary>
+        private SpawnData[] BuildCombatSpawnsFromExploration(
+            List<ExplorationController.ExplorationUnitInfo> units)
+        {
+            var gridMap = _gridRoot != null ? _gridRoot.GetComponentInChildren<HexGridMap>() : null;
+            if (gridMap == null || !gridMap.IsInitialized)
+            {
+                Debug.LogWarning("[GameBootstrap] Grid not ready, falling back to fixed spawns.");
+                return null;
+            }
+
+            var spawns = new List<SpawnData>();
+            var claimed = new HashSet<HexCoord>();
+
+            foreach (var unit in units)
+            {
+                HexCoord coord = FindNearestWalkableCell(gridMap, unit.WorldPosition, claimed);
+                spawns.Add(new SpawnData
+                {
+                    Definition = unit.Definition,
+                    SpawnQ = coord.Q,
+                    SpawnR = coord.R,
+                    TeamId = unit.TeamId
+                });
+            }
+
+            Debug.Log($"[GameBootstrap] Built {spawns.Count} dynamic combat spawns from exploration positions.");
+            return spawns.ToArray();
+        }
+
+        /// <summary>
+        /// Find the nearest walkable, unoccupied hex cell to a world position.
+        /// Tracks previously claimed cells to avoid overlap during batch spawn.
+        /// </summary>
+        private static HexCoord FindNearestWalkableCell(
+            HexGridMap gridMap, Vector3 worldPos, HashSet<HexCoord> claimed)
+        {
+            HexCoord nearest = gridMap.WorldToHex(worldPos);
+
+            // Try the direct cell first
+            if (IsCellAvailable(gridMap, nearest, claimed))
+            {
+                claimed.Add(nearest);
+                return nearest;
+            }
+
+            // Search expanding rings around the nearest cell
+            for (int ring = 1; ring <= 5; ring++)
+            {
+                var ringCoords = HexCoord.GetRing(nearest, ring);
+                float bestDist = float.MaxValue;
+                HexCoord bestCoord = nearest;
+                bool found = false;
+
+                foreach (var coord in ringCoords)
+                {
+                    if (!IsCellAvailable(gridMap, coord, claimed)) continue;
+
+                    float dist = Vector3.Distance(worldPos, gridMap.GetCellWorldPosition(coord));
+                    if (dist < bestDist)
+                    {
+                        bestDist = dist;
+                        bestCoord = coord;
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    claimed.Add(bestCoord);
+                    return bestCoord;
+                }
+            }
+
+            // Fallback: use nearest even if not ideal
+            Debug.LogWarning($"[GameBootstrap] No walkable cell found near {worldPos}, using nearest hex.");
+            claimed.Add(nearest);
+            return nearest;
+        }
+
+        private static bool IsCellAvailable(HexGridMap gridMap, HexCoord coord, HashSet<HexCoord> claimed)
+        {
+            return gridMap.TryGetCell(coord, out var cell)
+                && cell.Walkable
+                && !cell.IsOccupied
+                && !claimed.Contains(coord);
+        }
+
+        private void InitializeExplorationHUD()
+        {
+            if (_uiRoot == null || _explorationLeader == null) return;
+
+            _explorationHUD = _uiRoot.GetComponent<ExplorationHUD>();
+            if (_explorationHUD == null)
+                _explorationHUD = _uiRoot.gameObject.AddComponent<ExplorationHUD>();
+
+            _explorationHUD.Initialize(_explorationLeader, _explorationFollowers);
+            Debug.Log("[GameBootstrap] Exploration HUD initialized.");
+        }
+
+        private void InitializeExplorationMinimap()
+        {
+            if (_uiRoot == null || _explorationController == null || _explorationController.Leader == null)
+                return;
+
+            _explorationMinimap = _uiRoot.GetComponent<ExplorationMinimap>();
+            if (_explorationMinimap == null)
+                _explorationMinimap = _uiRoot.gameObject.AddComponent<ExplorationMinimap>();
+
+            _explorationMinimap.Initialize(
+                _explorationController.Leader.transform,
+                _explorationController.GetFollowerTransforms(),
+                _explorationController.GetEnemyTransforms());
+            Debug.Log("[GameBootstrap] Exploration Minimap initialized.");
         }
 
         private void OnDestroy()
