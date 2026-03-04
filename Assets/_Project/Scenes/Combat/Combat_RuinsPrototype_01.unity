@@ -67805,6 +67805,12 @@ MonoBehaviour:
   _uiRoot: {fileID: 1052078848}
   _audioConfig: {fileID: 11400000, guid: 9604141f66c473245b5b2833023fa49c, type: 2}
   _hudSpriteConfig: {fileID: 0}
+  _startInExploration: 1
+  _explorationSpawnPos: {x: -3.57, y: -15.01, z: -266.54}
+  _explorationLeader: {fileID: 11400000, guid: 5fc7317d2ced69446968471a6c04d7de, type: 2}
+  _explorationFollowers:
+  - {fileID: 11400000, guid: 70c98de002a578b49bee99c103e21a95, type: 2}
+  - {fileID: 11400000, guid: 94f5a8e8969f19c438abf42d9b5def50, type: 2}
   _testSpawns:
   - Definition: {fileID: 11400000, guid: 70c98de002a578b49bee99c103e21a95, type: 2}
     SpawnQ: 40
@@ -98534,7 +98540,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1767e9fc6f3d3144a85b9de2ad289d12, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Grid.HexGridVisualizer
   _showGridInGame: 0
 --- !u!114 &1893585533

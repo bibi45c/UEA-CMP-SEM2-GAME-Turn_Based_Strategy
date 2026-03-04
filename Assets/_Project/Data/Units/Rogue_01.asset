@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22d40dfd569b0c3479205ae2f5ff3983, type: 3}
+  m_Name: Rogue_01
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Units.UnitDefinition
+  _unitName: Rogue
+  _portrait: {fileID: 0}
+  _modelPrefab: {fileID: 1773664768928810, guid: 10202ef1ef7802a4a8bafb709626e655, type: 3}
+  _weaponPrefab: {fileID: 1232883183643124, guid: cbbb3e1aa2223464fb4cd7eff81416ca, type: 3}
+  _weaponBoneName: Hand_R
+  _weaponPositionOffset: {x: 0, y: 0, z: 0}
+  _weaponRotationOffset: {x: 0, y: 90, z: 0}
+  _useOriginalMaterials: 0
+  _strength: 8
+  _finesse: 14
+  _intelligence: 8
+  _constitution: 10
+  _wits: 12
+  _baseMovementPoints: 5
+  _baseActionPoints: 6
+  _level: 1
+  _abilities:
+  - {fileID: 11400000, guid: b8d615cec9447914f8aae79539d742d3, type: 2}

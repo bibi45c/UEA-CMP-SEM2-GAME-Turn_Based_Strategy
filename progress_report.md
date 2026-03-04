@@ -11,6 +11,67 @@ without diffing code.
 
 ---
 
+## 2026-03-04 (Session 13) — Exploration Mode: Party, Enemies, HUD, Minimap
+
+### Completed (Exploration Phase Core)
+- **ExplorationController.cs** — Game phase manager for pre-combat exploration. Spawns party at dungeon entrance, manages lifecycle, triggers combat transition.
+- **ExplorationMovement.cs** — Right-click point-and-click movement for the mage leader. Uses raycast to ground, smooth rotation, `IsMoving` animation parameter.
+- **PartyFollower.cs** — Followers auto-follow the leader with hysteresis (start buffer = 0.5f to prevent constant walking). Height-adjusts via raycast.
+- **GameBootstrap phase system** — Added `GamePhase` enum (Exploration/Combat), `_startInExploration` flag, `InitializeExploration()`, `TransitionToCombat()`. Grid always initializes (needed for combat later).
+
+### Completed (Rogue Unit)
+- **Rogue_01.asset** — 3rd player unit. Finesse 14, Movement 5, AP 6. Model: Chr_Nomad_Female_01 (fileID `1773664768928810`), Weapon: SM_Wep_Knife_Small_01 (fileID `1232883183643124`), 1 ability (BasicAttack).
+
+### Completed (Bug Fixes)
+- **Spawn position** — Fixed from local coords (-3.9, -1.8, 51.9) to world coords (-3.57, -15.01, -266.54) by finding SM_Prop_Rug_04's world position. The dungeon Forge hierarchy has nested transforms.
+- **Rogue prefab references** — Fixed broken fileIDs in Rogue_01.asset. Model fileID was from wrong prefab (Chr_Nomad_Male_01 vs Female_01). Weapon fileID didn't exist in knife prefab.
+- **Animation parameter spam** — Removed `MoveSpeed` float parameter from ExplorationMovement and PartyFollower. CombatUnitAnimator only has `IsMoving` (bool) and `Attack` (trigger).
+- **Camera zoom** — Added `SetZoom(float, bool)` to TacticalCamera. Called from `Start()` (not `Awake()`) because TacticalCamera.Awake resets zoom to defaults.
+- **Follower distance** — Increased follow distance formula to `_partySpacing * (1.5f + i * 0.8f)`, added hysteresis.
+
+### Completed (Exploration UI)
+- **ExplorationHUD.cs** — Left-side party status panel showing unit name, level, and full HP bar for each party member. HP computed from UnitDefinition: `20 + Con*3 + Level*5`. Uses DOS2Theme factory methods.
+- **ExplorationMinimap.cs** — Top-right radar-style minimap. Fixed north-up orientation. White dot = player leader (center), blue dots = followers, red dots = enemies. 25m world radius mapped to 140px panel. Gold-bordered frame with "Dungeon Forge" title.
+
+### Completed (Enemy NPCs)
+- **Enemy spawning in exploration** — SkeletonKnight and GoblinWarrior from `_testSpawns` spawned as visual models at their hex grid world positions during exploration.
+- **ExplorationPatrol.cs** — Enemies patrol within 2.5m radius of spawn point. Random target selection, 1.2 m/s speed, 2-5s idle pauses, desync via random initial delay.
+- **Encounter trigger** — Proximity detection (8m range) in ExplorationController.Update(). When triggered, calls `GameBootstrap.TransitionToCombat()`.
+
+### Completed (Combat Transition)
+- **Dynamic combat spawns** — When transitioning from exploration, captures all unit world positions via `GetAllUnitData()`, converts to nearest walkable hex cells via `WorldToHex()` + expanding ring search. Combat units spawn at exploration positions, not fixed coords.
+- **Party sync** — Combat uses the same UnitDefinitions from exploration (leader + followers as team 0, enemies as team 1). Fixed spawns (`_testSpawns`) only used when bypassing exploration.
+- **Camera zoom reset** — Smoothly transitions from exploration zoom (5) to combat zoom (12) on transition.
+- **UI cleanup** — ExplorationHUD and ExplorationMinimap properly destroyed before combat HUD initializes.
+
+### Files Created
+- `Assets/_Project/Scripts/Exploration/ExplorationController.cs`
+- `Assets/_Project/Scripts/Exploration/ExplorationMovement.cs`
+- `Assets/_Project/Scripts/Exploration/PartyFollower.cs`
+- `Assets/_Project/Scripts/Exploration/ExplorationPatrol.cs`
+- `Assets/_Project/Scripts/UI/ExplorationHUD.cs`
+- `Assets/_Project/Scripts/UI/ExplorationMinimap.cs`
+- `Assets/_Project/Data/Units/Rogue_01.asset`
+
+### Files Modified
+- `Assets/_Project/Scripts/Core/GameBootstrap.cs` (phase system, exploration init, transition, enemy spawning, HUD/minimap wiring, dynamic combat spawns)
+- `Assets/_Project/Scripts/Camera/TacticalCamera.cs` (SetZoom method)
+- `Assets/_Project/Scenes/Combat/Combat_RuinsPrototype_01.unity` (exploration config serialized in scene)
+
+### Next Steps (Session 14)
+1. **Warrior Stun Ability** — "Shield Bash" with stun chance + pity system
+2. **Equipment System** — EquipmentDefinition SO, EquipmentLoadout, stat bonuses
+3. **Exploration Polish** — Enemy aggro indicator, transition animation/screen, area boundaries
+4. **Target Preview** — Hover damage prediction UI for abilities
+
+### Known Issues
+- **Oil ignition** — Fire abilities don't convert oil surfaces to fire
+- **FireBolt ground targeting** — Currently `SingleEnemy` only, cannot target ground tiles
+- **Exploration camera clipping** — Close zoom (5) may clip through dungeon geometry in tight spaces
+- **Enemy patrol height** — Patrol movement may cause enemies to drift vertically on uneven terrain
+
+---
+
 ## 2026-03-04 (Session 12) — UI Polish, Combat Log, Hotkeys, & Phase 1 Audit
 
 ### Completed (Dark Fantasy HUD — Attempted & Reverted)

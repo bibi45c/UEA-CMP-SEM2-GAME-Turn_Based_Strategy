@@ -71,6 +71,13 @@ namespace TurnBasedTactics.Camera
             _panOffset = Vector3.zero;
         }
 
+        public void SetZoom(float distance, bool instant = false)
+        {
+            _targetZoom = Mathf.Clamp(distance, _config.MinZoomDistance, _config.MaxZoomDistance);
+            if (instant)
+                _currentZoom = _targetZoom;
+        }
+
         public Ray GetScreenRay(Vector2 screenPos)
         {
             return _cam != null ? _cam.ScreenPointToRay(screenPos) : default;
