@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1ae460930233de40a32174e5887aae8, type: 3}
+  m_Name: CombatAudioConfig
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Combat.CombatAudioConfig
+  CombatIntro: {fileID: 8300000, guid: c91b6eb779dc0e44791bdea4396f4909, type: 3}
+  CombatLoop: {fileID: 8300000, guid: 96f5b25eb01835f41b80cea4ee57ddd6, type: 3}
+  VictoryMusic: {fileID: 8300000, guid: 06eb8f1727fb3bf4797bd4a4f66f56e3, type: 3}
+  DefeatMusic: {fileID: 8300000, guid: edaacbeee431e7c488ec2a7ceb7d32dc, type: 3}
+  MusicVolume: 0.4
+  MusicCrossfadeDuration: 1.5
+  MeleeSwingClips:
+  - {fileID: 8300000, guid: e4bd2b9f2efc0c544a777d132d35c973, type: 3}
+  - {fileID: 8300000, guid: 4604e8211ceabe846a9ef84bd5603bd2, type: 3}
+  - {fileID: 8300000, guid: 3e61f634acaf9b84ea3fb309061f5142, type: 3}
+  MeleeHitClips:
+  - {fileID: 8300000, guid: 519ff479aec640147a83d559ecff1e7b, type: 3}
+  - {fileID: 8300000, guid: 230d13df2ed1cc24eba20a5db1cc7295, type: 3}
+  - {fileID: 8300000, guid: 5e32c067fe829a84f82b4499dd75ee29, type: 3}
+  RangedAttackClips:
+  - {fileID: 8300000, guid: 5f0088ca080065042b22764bdbdb2cf5, type: 3}
+  - {fileID: 8300000, guid: 11d8edf664b5018419784300abe60e74, type: 3}
+  - {fileID: 8300000, guid: e0dce3a3055dc6049a05b18bcb38173b, type: 3}
+  FireCastClips:
+  - {fileID: 8300000, guid: fc9cbca844034438381d9d70376f00e5, type: 3}
+  - {fileID: 8300000, guid: e05c5d113fcab456280f35ddada0661e, type: 3}
+  - {fileID: 8300000, guid: 58d2455131afe487d9c6856d854a3ebc, type: 3}
+  IceCastClips:
+  - {fileID: 8300000, guid: 229f375126daa495b8f6ef83b4b980ea, type: 3}
+  - {fileID: 8300000, guid: f362b354a4b1140c89a5bbd89fec4e30, type: 3}
+  - {fileID: 8300000, guid: 74c8cc536f28d453d8846be43bc8b7b8, type: 3}
+  LightningCastClips:
+  - {fileID: 8300000, guid: 1eb0b200a160d4d5fb53007b31a24ae9, type: 3}
+  - {fileID: 8300000, guid: 23a647dd0990a46aa89c97bf1110342d, type: 3}
+  - {fileID: 8300000, guid: 411e196ea213b47baa4d66bf84171693, type: 3}
+  PoisonCastClips: []
+  HolyCastClips:
+  - {fileID: 8300000, guid: ae1d4cd24b532400f911c45987bb7078, type: 3}
+  - {fileID: 8300000, guid: 3dcadb46ba29446f9ba877d10985ba35, type: 3}
+  - {fileID: 8300000, guid: 42d11d5763f434fbc8f48bc8bca6f0c5, type: 3}
+  HealClips:
+  - {fileID: 8300000, guid: 1173f3f6759e54a8592363a99a3de829, type: 3}
+  - {fileID: 8300000, guid: 55b7de0645b5b46ada26c6fae6032696, type: 3}
+  - {fileID: 8300000, guid: e6dd36c7000284a68890995397ec01af, type: 3}
+  BuffAppliedClips:
+  - {fileID: 8300000, guid: 0d772cbb935b6f5498dce58ef261cc92, type: 3}
+  - {fileID: 8300000, guid: 4c3abee27f0a0fc4a8dc4c19728934cb, type: 3}
+  - {fileID: 8300000, guid: 5f780401accdcd247bebe405da611fdc, type: 3}
+  UnitDeathClips:
+  - {fileID: 8300000, guid: 42df68f64383b1347a615402f1435dba, type: 3}
+  - {fileID: 8300000, guid: 3fdf213b53551184c988c6cf6a5b6c71, type: 3}
+  - {fileID: 8300000, guid: 7b97c81db80799246995f8138a226816, type: 3}
+  FootstepClips:
+  - {fileID: 8300000, guid: 96178af3a88618144bfeae466079e05e, type: 3}
+  - {fileID: 8300000, guid: 2d0fe8c32348b27478006ccec9e3794d, type: 3}
+  - {fileID: 8300000, guid: 801469eacabc4364f80272809932b916, type: 3}
+  FootstepInterval: 0.35
+  UnitSelectClips:
+  - {fileID: 8300000, guid: 26c6842862aa99e49a498662bec469ac, type: 3}
+  - {fileID: 8300000, guid: b08d0fcc812e06e43a9adf74a8ab1208, type: 3}
+  - {fileID: 8300000, guid: 366b32d073663ee4080d3d7cdea0862b, type: 3}
+  UIConfirmClips:
+  - {fileID: 8300000, guid: d6df363c1683d644e9c14e4567a6cdbe, type: 3}
+  - {fileID: 8300000, guid: 83aaa86a8d7fb6e40b2544e02356d6b4, type: 3}
+  - {fileID: 8300000, guid: a5cc70c51320350419e26834463eaeb4, type: 3}
+  TurnStartClips:
+  - {fileID: 8300000, guid: 8293f465dfd675745b036b7a49223d5d, type: 3}
+  - {fileID: 8300000, guid: df28e46aba59b4e4293743cb41cb476a, type: 3}
+  - {fileID: 8300000, guid: 947c6ba1c54bf8343ab226cc6f38160d, type: 3}
+  SFXVolume: 0.7
+  PitchVariation: 0.08

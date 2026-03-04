@@ -11,6 +11,58 @@ without diffing code.
 
 ---
 
+## 2026-03-04 (Session 11) — Combat Audio System & DOS2 HUD Research
+
+### Completed (Asset Management)
+- **Large asset imports** — Imported Audio (6.6GB), Icon (2.9GB), HUD (2MB) asset packs locally. Added them to `.gitignore` to keep repo size manageable (~365MB). Assets available on local disk but not tracked by git.
+- **.gitignore cleanup** — Added exclusions for `Assets/ThirdParty/Audio/`, `Icon/`, `HUD/`, `Materials/`, `Assets/Synty/`, `Assets/Screenshots/`, orphaned meta files, and Windows `NUL` artifact.
+- **Build settings** — Registered `Combat_RuinsPrototype_01` scene in EditorBuildSettings.
+- **InfinityPBR fix** — Deleted broken `SupportFilesCheckerAudio.cs` editor script from InfinityPBR audio pack (referenced missing `SupportFilesChecker` class, blocked all compilation).
+
+### Completed (Combat Audio System)
+- **CombatAudioConfig** — ScriptableObject (`Assets/_Project/Data/Audio/CombatAudioConfig.asset`) with all audio clip slots and tuning params. Categories: BGM (Intro/Loop/Victory/Defeat), Melee (Swing + Hit), Ranged, Elemental Magic (Fire/Ice/Lightning/Holy), Heal, Death, Footsteps, Buff, UI (Select/Confirm/TurnStart). Volume/pitch variation controls.
+- **CombatAudioManager** — EventBus-driven audio manager attached to CombatRoot. Three-layer audio architecture:
+  - **Music layer**: Two AudioSources for crossfade. Combat start plays Intro → auto-transitions to Loop. Victory/Defeat crossfades to ending music.
+  - **SFX layer**: 8-channel AudioSource pool for polyphony. Random clip selection from arrays. ±8% pitch variation for natural feel.
+  - **Movement**: Coroutine-based footstep loop (0.35s interval) during unit movement.
+- **Audio clip assignments** — 45 clips wired via direct YAML editing (Unity MCP can't set ObjectReference properties). Sources: Action_RPG_SFX (melee/ranged/death/footsteps/UI), Big Fantasy RPG Music Bundle (BGM), RPG Magic Elemental Pack (Fire/Ice/Lightning/Holy cast sounds, Heal).
+- **GameBootstrap integration** — `InitializeCombatAudio()` added after VFX init. Reads `_audioConfig` serialized field. Auto-adds CombatAudioManager component if missing.
+
+### Completed (DOS2 HUD Research)
+- **`plan.md`** — Comprehensive DOS2 combat HUD analysis and implementation plan:
+  - DOS2 color palette (exact hex from Larian wiki): Gold `#C7A758`, Panel BG `#0D0D14`, Party Blue `#00A2FD`, Enemy Red `#D7001F`, AP Green `#00F27D`, Highlight Gold `#FFD400`
+  - Bottom Action Bar design: 64x64 ability slots with gold borders, AP pips (green circles), HP bar, hint text
+  - Turn Order Bar restyle: faction-colored frames (blue=ally, red=enemy), active gold highlight
+  - Party Portrait Panel restyle: larger slots, AP pips, death state overlay
+  - Plan to replace OnGUI-based CombatHudController with proper uGUI Canvas ActionBar
+  - Available art assets: Fantasy RPG Icons Pack (skill icons for all classes), Synty HUD Pack (shaders/scripts only, no sprites)
+
+### Files Created This Session
+- `Scripts/Combat/CombatAudioConfig.cs` — ScriptableObject for audio clip assignments and tuning
+- `Scripts/Combat/CombatAudioManager.cs` — EventBus-driven audio with BGM crossfade and SFX pool
+- `Data/Audio/CombatAudioConfig.asset` — SO instance with 45 audio clips wired
+- `plan.md` — DOS2-style HUD overhaul research and implementation plan
+
+### Files Modified This Session
+- `Scripts/Core/GameBootstrap.cs` — Added `_audioConfig` field and `InitializeCombatAudio()` method
+- `.gitignore` — Added large asset exclusions (Audio/Icon/HUD/Screenshots/Synty)
+- `ProjectSettings/EditorBuildSettings.asset` — Registered combat scene
+
+### Key Technical Details
+- **Audio clip YAML format**: Unity AudioClip references use `{fileID: 8300000, guid: <guid>, type: 3}` in .asset YAML. MCP `manage_scriptable_object` tool can't set ObjectReference properties, so direct YAML editing was required.
+- **BGM transition**: Intro clip plays once (non-looping), then coroutine schedules Loop clip after `Intro.length` seconds. Victory/Defeat uses two-source crossfade over 1.5s.
+- **SFX pooling**: Round-robin index across 8 AudioSources. No cleanup needed — each source is reused when its index comes around again.
+- **Element-based SFX**: `CombatAudioConfig.GetElementClips(ElementType)` returns element-specific cast clip arrays. Falls back to `MeleeHitClips` for `ElementType.None`.
+
+### Next Steps
+- [ ] **DOS2 HUD Overhaul** (highest priority) — Implement `plan.md`: ActionBar, restyle TurnOrderBar, restyle PartyPortraitPanel, replace OnGUI with uGUI
+- [ ] Ability icon assignment on UnitDefinition SOs (integrate Fantasy RPG Icons Pack)
+- [ ] Target preview panel (hit chance, damage estimate)
+- [ ] Status effect icons on portraits
+- [ ] Weapon offset tuning (low priority)
+
+---
+
 ## 2026-03-03 (Session 10) — Phase 1 Polish: VFX, Victory/Defeat Screen & Scene Transitions
 
 ### Completed (Attack/Heal Visual Feedback)

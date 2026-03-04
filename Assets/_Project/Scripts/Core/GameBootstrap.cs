@@ -35,6 +35,9 @@ namespace TurnBasedTactics.Core
         [SerializeField] private Transform _cameraRoot;
         [SerializeField] private Transform _uiRoot;
 
+        [Header("Audio")]
+        [SerializeField] private CombatAudioConfig _audioConfig;
+
         [Header("Test Spawn Data")]
         [SerializeField] private SpawnData[] _testSpawns;
 
@@ -361,6 +364,7 @@ namespace TurnBasedTactics.Core
             InitializeCombatHud();
             InitializeCombatWorldUI(spawner);
             InitializeCombatVFX(spawner);
+            InitializeCombatAudio();
             InitializeTurnOrderBar();
             InitializePartyPortraits(selectionMgr);
             InitializeResultsScreen();
@@ -429,6 +433,18 @@ namespace TurnBasedTactics.Core
 
             vfxManager.Initialize(spawner, cameraShake);
             Debug.Log("[GameBootstrap] Combat VFX system initialized.");
+        }
+
+        private void InitializeCombatAudio()
+        {
+            if (_combatRoot == null) return;
+
+            var audioManager = _combatRoot.GetComponent<CombatAudioManager>();
+            if (audioManager == null)
+                audioManager = _combatRoot.gameObject.AddComponent<CombatAudioManager>();
+
+            audioManager.Initialize(_audioConfig);
+            Debug.Log("[GameBootstrap] Combat Audio system initialized.");
         }
 
         private void InitializeTurnOrderBar()
