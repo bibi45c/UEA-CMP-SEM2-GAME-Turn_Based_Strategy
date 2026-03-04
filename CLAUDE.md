@@ -14,6 +14,51 @@ Read this file before making any changes.
 - **Input**: Unity Input System 1.18.0
 - **UI**: uGUI (com.unity.ugui 2.0.0)
 - **Platform target**: PC (Windows primary)
+- **MCP Tools**: Unity MCP server available for Unity Editor operations
+
+---
+
+## Unity MCP Integration
+
+**IMPORTANT**: This project has Unity MCP tools available for direct Unity Editor operations.
+
+### Available Unity MCP Operations
+
+Use Unity MCP tools for tasks that normally require Unity Editor GUI:
+- **Asset management**: Search, create, modify, delete assets
+- **ScriptableObject editing**: Modify SO properties via serialized property paths
+- **Prefab operations**: Create, modify prefab contents headlessly
+- **Scene operations**: Query hierarchy, take screenshots
+- **Material/Shader management**: Set properties, assign materials
+- **Script operations**: Create, validate, apply structured edits
+
+### When to Use Unity MCP
+
+- **Creating/modifying ScriptableObject assets** (e.g., UnitDefinition, AbilityDefinition, HUDSpriteConfig)
+- **Assigning object references** (sprites, prefabs, materials) to SO fields
+- **Querying scene hierarchy** or GameObject components
+- **Batch asset operations** (search, rename, duplicate)
+- **Prefab modifications** without opening prefab mode
+
+### Unity MCP Limitations
+
+- Cannot directly edit `.unity` scene files (binary format)
+- Sprite references require GUID + fileID format (use YAML editing for complex cases)
+- Some operations may require Unity Editor refresh to take effect
+
+### Example: Assigning Sprites to ScriptableObject
+
+```bash
+# Method 1: Direct YAML editing (most reliable for sprites)
+1. Read the .asset file to see current YAML structure
+2. Find sprite GUIDs from .meta files
+3. Edit YAML with format: {fileID: 21300000, guid: <sprite-guid>, type: 3}
+
+# Method 2: Unity MCP manage_scriptable_object (for simple properties)
+Use manage_scriptable_object with "modify" action and patches array
+```
+
+**Best Practice**: For sprite/texture references, prefer direct YAML editing over MCP tools due to Unity's sub-asset reference complexity.
 
 ---
 
@@ -114,6 +159,78 @@ Decisions made during planning discussions. Do not contradict these without expl
 | Movement snap | Snap to cell center (Option A) | Logic snaps to center; visual adds ±0.1m random offset for natural look |
 | Hex cell size | R=0.75m (compact) | Configurable; grid width 1.5m per cell; 10×12 arena ≈ 13×16m |
 | Unit size | Multi-cell (Option B) | Size 1=1cell, Size 2=7cells, Size 3=19cells; Phase 1 all size=1, add size=2 boss later |
+
+---
+
+## UI Design Guidelines
+
+### Current UI System (Session 11-12)
+
+The project uses **uGUI (Unity UI)** with a **sprite-optional architecture**:
+- UI components work with or without sprite assets
+- Fallback to clean geometric shapes using `DOS2Theme` color palette
+- All UI code is in `Assets/_Project/Scripts/UI/`
+
+**Key Files:**
+- `DOS2Theme.cs` — Centralized color palette and UI helper methods
+- `HUDSpriteConfig.cs` — Optional ScriptableObject for sprite assignments
+- `ActionBar.cs` — Bottom ability bar (sprite-aware)
+- `TurnOrderBar.cs` — Top turn order display (sprite-aware)
+- `PartyPortraitPanel.cs` — Left party status panel (sprite-aware)
+
+### Design Philosophy
+
+**Information Density > Visual Decoration**
+
+For tactical RPGs, players need to see HP, AP, abilities, and turn order at a glance. Prioritize:
+1. **Clarity**: High contrast, readable fonts, clear icons
+2. **Consistency**: Predictable layout, uniform spacing
+3. **Minimalism**: No excessive ornamentation or animation
+4. **Functionality**: Every UI element serves a purpose
+
+Reference games: Divinity: Original Sin 2, Baldur's Gate 3, XCOM 2, Into the Breach
+
+### Asset Pack Integration Rules
+
+**CRITICAL**: Before integrating any UI asset pack, verify:
+
+1. **Genre Match**: Is it designed for tactical/strategy games? (Not ARPG/MMO/action games)
+2. **9-Slice Support**: Do panel/frame sprites have proper `spriteBorder` values in `.meta` files?
+3. **Layout Compatibility**: Does it support dynamic/programmatic UI generation?
+4. **Modularity**: Are components separate (borders, backgrounds, icons) or fixed mockups?
+
+**Session 12 Lesson**: Dark Fantasy HUD failed because:
+- Designed for ARPG fixed layouts, not tactical dynamic UI
+- Most decorative sprites lacked 9-slice borders → severe distortion
+- Asset pack mockups showed horizontal bars, our code generates compact panels
+
+**When in doubt**: Keep the current sprite-less UI. It's clean, functional, and proven to work.
+
+### Color Palette (DOS2Theme.cs)
+
+Current colors (dark gothic theme):
+```csharp
+GoldAccent     = #B8860B  // Dark goldenrod (borders, highlights)
+PanelBg        = #0A0A0F  // Deep black-purple (backgrounds)
+EnemyRed       = #8B0000  // Blood red (enemy indicators)
+HPGreen        = #4CAF50  // Health bars
+APGreen        = #00E676  // Action point pips
+SyntyDarkBg    = #1A0F1F  // Deep purple-black (panel tint)
+SyntyFrameGray = #4A4A4A  // Dark gray (borders)
+```
+
+**Important**: When using sprites, set `Image.color = Color.white` to show sprite's original colors. Dark tints on dark sprites = invisible UI.
+
+### Future UI Improvements (Backlog)
+
+See `Docs/UI_Design_Notes.md` for detailed plans. Priority order:
+1. Refine spacing and font sizes in current UI
+2. Add tooltips for abilities and units
+3. Add status effect icons above HP bars
+4. Add combat log (scrolling text feed)
+5. Custom minimal sprites (if time permits)
+
+**Do not** attempt UI visual overhauls without explicit user approval. Functionality first.
 
 ---
 

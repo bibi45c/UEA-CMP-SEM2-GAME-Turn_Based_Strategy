@@ -11,6 +11,10 @@ namespace TurnBasedTactics.Grid
     [RequireComponent(typeof(HexGridMap))]
     public class HexGridVisualizer : MonoBehaviour
     {
+        [Header("Visibility")]
+        [SerializeField] [Tooltip("Show hex grid overlay in non-debug builds")]
+        private bool _showGridInGame = false;
+
         private HexGridMap _gridMap;
         private Material _lineMaterial;
         private bool _showGrid;
@@ -28,6 +32,13 @@ namespace TurnBasedTactics.Grid
         private void Awake()
         {
             _gridMap = GetComponent<HexGridMap>();
+
+            // Initialize visibility based on serialized field
+            #if UNITY_EDITOR
+            _showGrid = true; // Always show in editor
+            #else
+            _showGrid = _showGridInGame; // Use configured value in builds
+            #endif
         }
 
         /// <summary>
