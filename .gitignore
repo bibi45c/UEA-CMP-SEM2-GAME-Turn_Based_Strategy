@@ -101,3 +101,23 @@ InitTestScene*.unity*
 
 /GameInfo.md
 /README_old.md
+
+# Large asset packs (keep local, too large for Git)
+Assets/ThirdParty/Audio/
+Assets/ThirdParty/Audio.meta
+Assets/ThirdParty/HUD/
+Assets/ThirdParty/HUD.meta
+Assets/ThirdParty/Icon/
+Assets/ThirdParty/Icon.meta
+Assets/ThirdParty/Materials/
+Assets/ThirdParty/Materials.meta
+Assets/Synty/
+Assets/Synty.meta
+Assets/Screenshots/
+Assets/Screenshots.meta
+
+# Orphaned meta files
+Assets/Scripts.meta
+
+# Windows artifacts
+NUL
