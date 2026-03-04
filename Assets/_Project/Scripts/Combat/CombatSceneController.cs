@@ -300,7 +300,7 @@ namespace TurnBasedTactics.Combat
 
         private IEnumerator WaitThenProcessPostAction(UnitRuntime unit)
         {
-            yield return new WaitForSeconds(1.0f);
+            yield return new WaitForSeconds(2.0f);
             _actionAnimating = false;
 
             if (unit == null || unit.IsDead)

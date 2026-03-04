@@ -11,6 +11,92 @@ without diffing code.
 
 ---
 
+## 2026-03-04 (Session 12) — UI Polish, Combat Log, Hotkeys, & Phase 1 Audit
+
+### Completed (Dark Fantasy HUD — Attempted & Reverted)
+- **HUD Sprite Integration** — Attempted to integrate Dark Fantasy HUD asset pack via Unity MCP tools. Successfully assigned `DarkFantasyHUDConfig` to `GameBootstrap._hudSpriteConfig` in scene.
+- **Invisible UI fix** — Fixed dark sprites being tinted with dark colors (`DOS2Theme.SyntyDarkBg`) making UI invisible. Changed all sprite tints to `Color.white` in `PartyPortraitPanel`, `ActionBar`, `TurnOrderBar`.
+- **9-Slice distortion** — Discovered most Dark Fantasy sprites lack proper 9-slice borders. Tested `Frame_Box_Large_01_Background` (180px borders) but result still poor for tactical RPG layouts.
+- **Reverted** — User decided asset pack is ARPG-focused, not suitable for tactical dynamic UI. Cleared `_hudSpriteConfig` reference in scene. Documented failure analysis in `Docs/UI_Design_Notes.md`.
+
+### Completed (Combat Log)
+- **CombatLog.cs** — Created DOS2-style scrolling combat log panel (bottom-right corner). Uses `RectMask2D` for clean text clipping. Subscribes to: `CombatStartedEvent`, `RoundStartedEvent`, `TurnStartedEvent`, `UnitDamagedEvent`, `UnitHealedEvent`, `UnitDiedEvent`, `UnitMoveCompletedEvent`. Rich text color coding per event type. Panel: 380×200px, font size 13px.
+- **GameBootstrap wiring** — Added `InitializeCombatLog()` method, passes `UnitRegistry` to `CombatLog.Initialize()` for unit name resolution.
+
+### Completed (ActionBar Improvements)
+- **Text layout fix** — Ability initials: `CreateOutlinedText`, 18px bold. Shortcut numbers: gold color (`DOS2Theme.GoldAccent`), bold, 10px. Hint text: `CreateOutlinedText`, italic, 11px.
+- **Hotkey bindings** — Added `HandleHotkeys()` in `ActionBar.Update()` using `Keyboard.current` from Input System:
+  - `1` = Move, `2/3/4/5/6` = Abilities (mapped to slots), `C` = Cancel queued action, `Space` = End Turn (existing).
+
+### Completed (Hex Grid Visibility)
+- **Configurable visibility** — Added `_showGridInGame` serialized field to `HexGridVisualizer`. Always visible in Editor, uses config value in builds. Set to `false` in scene.
+
+### Completed (Archer Ranged Attack)
+- **ThrowSpear.asset** — Created ranged ability: range 4, AP cost 2, physical damage, Finesse scaling 1.1. GUID: `645de0d0297459a48be04da623a087e9`.
+- **Archer_01.asset** — Added ThrowSpear as first ability (before BasicAttack). Changed weapon to `SM_Wep_Spear_01` with Y rotation offset 90°.
+
+### Completed (Oil Puddle Test Setup)
+- **CreateTestOilPuddles** — Added to `GameBootstrap.InitializeCombat()`. Places oil surfaces on enemy cells (40,45) and (42,45) plus adjacent cells. Moved call to after `SurfaceSystem` initialization.
+- **SurfaceSystem.GetDefinition()** — Added method to look up registered `SurfaceDefinition` by `SurfaceType`.
+
+### Completed (Attack Animation Tuning)
+- **Slower animations** — Added `_actionAnimationSpeed = 0.45f` to `UnitVisual`. Sets animator to 45% speed during attacks, resets after 2s. Post-action wait: 2.0s in `CombatSceneController`.
+
+### Completed (Documentation)
+- **Docs/UI_Design_Notes.md** — Created comprehensive UI design notes: Dark Fantasy HUD failure analysis, future UI design plan, color palette reference, asset pack evaluation criteria, known issues backlog (oil ignition).
+- **CLAUDE.md** — Added "UI Design Guidelines" section with design philosophy, asset pack rules, color palette, and lessons learned.
+
+### Phase 1 Completion Audit
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Abilities | 4/6-10 | BasicAttack, FireBolt, BasicHeal, ThrowSpear. Missing control/support skills |
+| Status Effects | 4/4-6 | Burning, Poisoned, Blessed, Frozen ✅ |
+| Items & Equipment | 0/5-10 | **Not implemented** — empty folders, no scripts |
+| Unit Definitions | 5 (2+3) | Warrior, Mage (player) + SkeletonKnight, GoblinWarrior, Archer (enemy) |
+| Surfaces | 4/2-3 | Oil, Fire, Poison, Ice + reaction table ✅ |
+| Encounter System | Partial | Framework exists, no asset files |
+| Target Preview | Missing | No hover damage prediction UI |
+| Damage Popup | ✅ | FloatingDamageText working |
+| Surface Tooltip | Missing | No hover tooltip |
+| Cover System | ✅ | Half/Full directional cover |
+| Height System | Partial | Framework only, combat bonuses not coded |
+| Line of Sight | ✅ | Directional LoS with height awareness |
+| Combat Log | ✅ | New this session |
+| Combat VFX/Audio | ✅ | Particles + audio events |
+| Victory/Defeat | ✅ | Results screen working |
+
+### Files Modified
+- `Assets/_Project/Scripts/UI/CombatLog.cs` (CREATED)
+- `Assets/_Project/Scripts/UI/ActionBar.cs` (hotkeys, text layout)
+- `Assets/_Project/Scripts/UI/PartyPortraitPanel.cs` (sprite tint fix)
+- `Assets/_Project/Scripts/UI/TurnOrderBar.cs` (sprite tint fix)
+- `Assets/_Project/Scripts/UI/CombatHudController.cs`
+- `Assets/_Project/Scripts/Grid/HexGridVisualizer.cs` (visibility toggle)
+- `Assets/_Project/Scripts/Grid/SurfaceSystem.cs` (GetDefinition method)
+- `Assets/_Project/Scripts/Grid/OilPuddleVisual.cs` (CREATED)
+- `Assets/_Project/Scripts/Units/UnitVisual.cs` (animation speed)
+- `Assets/_Project/Scripts/Combat/CombatSceneController.cs` (post-action wait, oil puddles)
+- `Assets/_Project/Scripts/Core/GameBootstrap.cs` (combat log init, oil puddles)
+- `Assets/_Project/Data/Abilities/ThrowSpear.asset` (CREATED)
+- `Assets/_Project/Data/Units/Archer_01.asset` (ranged weapon + ability)
+- `Assets/_Project/Data/DarkFantasyHUDConfig.asset` (modified, then unused)
+- `Assets/_Project/Scenes/Combat/Combat_RuinsPrototype_01.unity` (grid visibility, HUD config cleared)
+- `Docs/UI_Design_Notes.md` (CREATED)
+- `CLAUDE.md` (UI guidelines added)
+
+### Next Steps (Session 13)
+1. **Warrior Stun Ability** — "Shield Bash" with 50% stun chance + pity system (累加概率保底)
+2. **Equipment System** — EquipmentDefinition SO, EquipmentLoadout class, starting equipment for units, stat bonuses flowing through UnitStats
+3. **Exploration Mode** — Pre-combat exploration phase: party following (Mage leader), enemy patrol, encounter trigger on proximity → transition to combat
+
+### Known Issues
+- **Oil ignition** — Fire abilities don't convert oil surfaces to fire. Needs `SurfaceReactionTable` system (documented in `Docs/UI_Design_Notes.md`)
+- **FireBolt ground targeting** — Currently `targetingType: SingleEnemy` only, cannot target ground tiles
+- **3rd player unit missing** — Only Warrior + Mage as player units, need a 3rd
+
+---
+
 ## 2026-03-04 (Session 11) — Combat Audio System & DOS2 HUD Research
 
 ### Completed (Asset Management)
