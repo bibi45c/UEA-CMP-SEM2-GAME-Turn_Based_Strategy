@@ -67803,6 +67803,8 @@ MonoBehaviour:
   _combatRoot: {fileID: 1626853972}
   _cameraRoot: {fileID: 1735083248}
   _uiRoot: {fileID: 1052078848}
+  _audioConfig: {fileID: 11400000, guid: 9604141f66c473245b5b2833023fa49c, type: 2}
+  _hudSpriteConfig: {fileID: 0}
   _testSpawns:
   - Definition: {fileID: 11400000, guid: 70c98de002a578b49bee99c103e21a95, type: 2}
     SpawnQ: 40
@@ -98532,8 +98534,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1767e9fc6f3d3144a85b9de2ad289d12, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Grid.HexGridVisualizer
+  _showGridInGame: 0
 --- !u!114 &1893585533
 MonoBehaviour:
   m_ObjectHideFlags: 0

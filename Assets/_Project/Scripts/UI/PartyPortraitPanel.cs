@@ -11,6 +11,8 @@ namespace TurnBasedTactics.UI
     /// Left-side party portrait panel. Shows player team units vertically.
     /// Each portrait is clickable to select that unit (and focus camera).
     /// Updates HP in real-time, highlights the active unit.
+    /// When HUDSpriteConfig is available, uses Synty Fantasy Warrior sprites;
+    /// otherwise falls back to code-drawn colored rectangles.
     /// </summary>
     public class PartyPortraitPanel : MonoBehaviour
     {
@@ -21,21 +23,20 @@ namespace TurnBasedTactics.UI
         private RectTransform _panelContainer;
         private readonly List<PortraitSlot> _slots = new();
 
-        private const float SlotWidth = 140f;
-        private const float SlotHeight = 60f;
+        private const float SlotWidth = 160f;
+        private const float SlotHeight = 80f;
         private const float SlotSpacing = 4f;
         private const float PanelPadding = 8f;
         private const float LeftMargin = 10f;
-        private const float TopOffset = 100f; // below Round banner
+        private const float TopOffset = 100f;
 
-        private static readonly Color PanelBgColor = new Color(0.05f, 0.05f, 0.08f, 0.7f);
-        private static readonly Color SlotBgColor = new Color(0.12f, 0.18f, 0.28f, 0.9f);
-        private static readonly Color ActiveBorderColor = new Color(1f, 0.85f, 0.2f, 1f);
-        private static readonly Color SelectedBorderColor = new Color(0.4f, 0.8f, 1f, 0.9f);
-        private static readonly Color NormalBorderColor = new Color(0.25f, 0.25f, 0.3f, 0.6f);
-        private static readonly Color HPBarColor = new Color(0.2f, 0.75f, 0.25f, 1f);
-        private static readonly Color HPBarLowColor = new Color(0.85f, 0.2f, 0.15f, 1f);
-        private static readonly Color HPBarBgColor = new Color(0.15f, 0.15f, 0.15f, 0.8f);
+        // DOS2 color palette
+        private static readonly Color PanelBgColor = DOS2Theme.PanelBg70;
+        private static readonly Color SlotBgColor = DOS2Theme.PanelBgAlt;
+        private static readonly Color ActiveBorderColor = DOS2Theme.GoldHighlight;
+        private static readonly Color SelectedBorderColor = DOS2Theme.PartyBlue;
+        private static readonly Color NormalBorderColor = DOS2Theme.InactiveBorder;
+        private static readonly Color HPBarBgColor = new Color(0.1f, 0.1f, 0.1f, 0.8f);
 
         public void Initialize(
             UnitRegistry registry,
@@ -86,8 +87,22 @@ namespace TurnBasedTactics.UI
             _panelContainer.anchoredPosition = new Vector2(LeftMargin, -TopOffset);
 
             // Background
+            var s = DOS2Theme.Sprites;
             var bgImage = containerGO.AddComponent<Image>();
-            bgImage.color = PanelBgColor;
+            if (s != null && s.PanelBackground != null)
+            {
+                bgImage.sprite = s.PanelBackground;
+                bgImage.type = Image.Type.Sliced;
+                bgImage.color = Color.white; // Let sprite's own colors show through
+            }
+            else
+            {
+                bgImage.color = PanelBgColor;
+            }
+
+            // Shadow behind the panel
+            if (DOS2Theme.HasSprites)
+                DOS2Theme.CreateShadow("PanelShadow", containerGO.transform);
 
             // Vertical layout
             var layout = containerGO.AddComponent<VerticalLayoutGroup>();
@@ -125,6 +140,9 @@ namespace TurnBasedTactics.UI
 
         private PortraitSlot CreatePortraitSlot(UnitRuntime unit)
         {
+            var s = DOS2Theme.Sprites;
+            bool hasSprites = DOS2Theme.HasSprites;
+
             // Slot root (button-like)
             var slotGO = new GameObject($"Portrait_{unit.Definition.UnitName}", typeof(RectTransform));
             slotGO.transform.SetParent(_panelContainer, false);
@@ -136,63 +154,83 @@ namespace TurnBasedTactics.UI
             layoutElem.preferredWidth = SlotWidth;
             layoutElem.preferredHeight = SlotHeight;
 
-            // Border image
+            // Border (portrait frame or colored rectangle)
             var borderImg = slotGO.AddComponent<Image>();
-            borderImg.color = NormalBorderColor;
+            if (hasSprites && s.PortraitFrame != null)
+            {
+                borderImg.sprite = s.PortraitFrame;
+                borderImg.type = Image.Type.Sliced;
+                borderImg.color = NormalBorderColor;
+            }
+            else
+            {
+                borderImg.color = NormalBorderColor;
+            }
 
             // Button for click
             var button = slotGO.AddComponent<Button>();
             button.targetGraphic = borderImg;
-
-            // Disable default color transition (we manage colors manually)
             var colors = button.colors;
             colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1.2f, 1.2f, 1.2f, 1f);
+            colors.highlightedColor = new Color(1.15f, 1.15f, 1.15f, 1f);
             colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
             button.colors = colors;
 
             int capturedUnitId = unit.UnitId;
             button.onClick.AddListener(() => OnPortraitClicked(capturedUnitId));
 
-            // Inner background
+            // Inner dark background
             var innerGO = CreateUIElement("Inner", slotGO.transform);
             var innerRect = innerGO.GetComponent<RectTransform>();
             innerRect.anchorMin = Vector2.zero;
             innerRect.anchorMax = Vector2.one;
             innerRect.offsetMin = new Vector2(2f, 2f);
             innerRect.offsetMax = new Vector2(-2f, -2f);
+
             var innerImg = innerGO.AddComponent<Image>();
-            innerImg.color = SlotBgColor;
+            if (hasSprites && s.SlotBackground != null)
+            {
+                innerImg.sprite = s.SlotBackground;
+                innerImg.type = Image.Type.Sliced;
+                innerImg.color = DOS2Theme.SyntyDarkBg;
+            }
+            else
+            {
+                innerImg.color = SlotBgColor;
+            }
             innerImg.raycastTarget = false;
 
-            // Name (left portion)
-            var nameGO = CreateUIElement("Name", innerGO.transform);
-            var nameRect = nameGO.GetComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0f, 0.4f);
+            // Unit name (upper 50%)
+            var nameText = DOS2Theme.CreateText("Name", innerGO.transform,
+                unit.Definition.UnitName, 13, DOS2Theme.TextWhite, TextAnchor.MiddleLeft, FontStyle.Bold);
+            var nameRect = nameText.GetComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0f, 0.5f);
             nameRect.anchorMax = new Vector2(1f, 1f);
             nameRect.offsetMin = new Vector2(6f, 0f);
             nameRect.offsetMax = new Vector2(-4f, -3f);
-            var nameText = nameGO.AddComponent<Text>();
-            nameText.text = unit.Definition.UnitName;
-            nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = 13;
-            nameText.fontStyle = FontStyle.Bold;
-            nameText.color = Color.white;
-            nameText.alignment = TextAnchor.MiddleLeft;
             nameText.resizeTextForBestFit = true;
             nameText.resizeTextMinSize = 9;
             nameText.resizeTextMaxSize = 14;
-            nameText.raycastTarget = false;
 
-            // HP bar background
+            // HP bar background (middle band)
             var hpBgGO = CreateUIElement("HPBarBg", innerGO.transform);
             var hpBgRect = hpBgGO.GetComponent<RectTransform>();
-            hpBgRect.anchorMin = new Vector2(0.04f, 0.1f);
-            hpBgRect.anchorMax = new Vector2(0.96f, 0.35f);
+            hpBgRect.anchorMin = new Vector2(0.04f, 0.28f);
+            hpBgRect.anchorMax = new Vector2(0.96f, 0.48f);
             hpBgRect.offsetMin = Vector2.zero;
             hpBgRect.offsetMax = Vector2.zero;
+
             var hpBgImg = hpBgGO.AddComponent<Image>();
-            hpBgImg.color = HPBarBgColor;
+            if (hasSprites && s.HPBarBackground != null)
+            {
+                hpBgImg.sprite = s.HPBarBackground;
+                hpBgImg.type = Image.Type.Sliced;
+                hpBgImg.color = Color.white;
+            }
+            else
+            {
+                hpBgImg.color = HPBarBgColor;
+            }
             hpBgImg.raycastTarget = false;
 
             // HP bar fill
@@ -203,29 +241,84 @@ namespace TurnBasedTactics.UI
             hpFillRect.offsetMin = Vector2.zero;
             hpFillRect.offsetMax = Vector2.zero;
             hpFillRect.pivot = new Vector2(0f, 0.5f);
-            hpFillRect.anchorMax = new Vector2(1f, 1f);
+
+            float hpRatio = (float)unit.CurrentHP / unit.Stats.MaxHP;
+            hpFillRect.anchorMax = new Vector2(hpRatio, 1f);
+
             var hpFillImg = hpFillGO.AddComponent<Image>();
-            hpFillImg.color = HPBarColor;
+            if (hasSprites && s.HPBarFill != null)
+            {
+                hpFillImg.sprite = s.HPBarFill;
+                hpFillImg.type = Image.Type.Sliced;
+            }
+            hpFillImg.color = DOS2Theme.GetHPColor(hpRatio);
             hpFillImg.raycastTarget = false;
 
+            // HP vignette overlay (optional depth effect)
+            if (hasSprites && s.HPBarVignette != null)
+            {
+                var vigImg = DOS2Theme.CreateSpriteImage("HPVignette", hpBgGO.transform,
+                    s.HPBarVignette, new Color(1f, 1f, 1f, 0.3f), false);
+                vigImg.raycastTarget = false;
+            }
+
+            // HP frame overlay (decorative, on top)
+            if (hasSprites && s.HPBarFrame != null)
+            {
+                var hpFrameImg = DOS2Theme.CreateSpriteImage("HPFrame", hpBgGO.transform,
+                    s.HPBarFrame, Color.white);
+                hpFrameImg.raycastTarget = false;
+            }
+
             // HP text overlay
-            var hpTextGO = CreateUIElement("HPText", hpBgGO.transform);
-            var hpTextRect = hpTextGO.GetComponent<RectTransform>();
+            var hpText = DOS2Theme.CreateOutlinedText("HPText", hpBgGO.transform,
+                $"{unit.CurrentHP}/{unit.Stats.MaxHP}", 10, Color.white, TextAnchor.MiddleCenter);
+            var hpTextRect = hpText.GetComponent<RectTransform>();
             hpTextRect.anchorMin = Vector2.zero;
             hpTextRect.anchorMax = Vector2.one;
             hpTextRect.offsetMin = Vector2.zero;
             hpTextRect.offsetMax = Vector2.zero;
-            var hpText = hpTextGO.AddComponent<Text>();
-            hpText.text = $"{unit.CurrentHP}/{unit.Stats.MaxHP}";
-            hpText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            hpText.fontSize = 10;
-            hpText.color = Color.white;
-            hpText.alignment = TextAnchor.MiddleCenter;
-            hpText.raycastTarget = false;
 
-            var hpOutline = hpTextGO.AddComponent<Outline>();
-            hpOutline.effectColor = Color.black;
-            hpOutline.effectDistance = new Vector2(1f, -1f);
+            // AP pips row (bottom band)
+            var apRow = CreateUIElement("APRow", innerGO.transform);
+            var apRowRect = apRow.GetComponent<RectTransform>();
+            apRowRect.anchorMin = new Vector2(0.04f, 0.04f);
+            apRowRect.anchorMax = new Vector2(0.96f, 0.24f);
+            apRowRect.offsetMin = Vector2.zero;
+            apRowRect.offsetMax = Vector2.zero;
+
+            var apLayout = apRow.AddComponent<HorizontalLayoutGroup>();
+            apLayout.spacing = 3f;
+            apLayout.childAlignment = TextAnchor.MiddleLeft;
+            apLayout.childForceExpandWidth = false;
+            apLayout.childForceExpandHeight = false;
+
+            int maxAP = unit.MaxAP;
+            int currentAP = unit.CurrentAP;
+            var apPips = new Image[maxAP];
+
+            for (int i = 0; i < maxAP; i++)
+            {
+                var pipGO = CreateUIElement($"AP_{i}", apRow.transform);
+                var pipLE = pipGO.AddComponent<LayoutElement>();
+                pipLE.preferredWidth = 10f;
+                pipLE.preferredHeight = 10f;
+
+                var pipImg = pipGO.AddComponent<Image>();
+                bool isFull = i < currentAP;
+
+                if (hasSprites && s.APGemFull != null)
+                {
+                    pipImg.sprite = isFull ? s.APGemFull : (s.APGemEmpty != null ? s.APGemEmpty : s.APGemFull);
+                    pipImg.color = isFull ? DOS2Theme.APGreen : new Color(0.3f, 0.3f, 0.3f, 1f);
+                }
+                else
+                {
+                    pipImg.color = isFull ? DOS2Theme.APGreen : DOS2Theme.PanelBgAlt;
+                }
+                pipImg.raycastTarget = false;
+                apPips[i] = pipImg;
+            }
 
             return new PortraitSlot
             {
@@ -234,6 +327,7 @@ namespace TurnBasedTactics.UI
                 HPFillImage = hpFillImg,
                 HPFillRect = hpFillRect,
                 HPText = hpText,
+                APPips = apPips,
                 UnitId = unit.UnitId
             };
         }
@@ -270,6 +364,9 @@ namespace TurnBasedTactics.UI
             var unit = _registry.GetUnit(unitId);
             if (unit == null) return;
 
+            var s = DOS2Theme.Sprites;
+            bool hasSprites = DOS2Theme.HasSprites;
+
             foreach (var slot in _slots)
             {
                 if (slot.UnitId != unitId) continue;
@@ -280,16 +377,41 @@ namespace TurnBasedTactics.UI
                     slot.HPFillRect.anchorMax = new Vector2(ratio, 1f);
 
                 if (slot.HPFillImage != null)
-                    slot.HPFillImage.color = ratio > 0.35f ? HPBarColor : HPBarLowColor;
+                    slot.HPFillImage.color = DOS2Theme.GetHPColor(ratio);
 
                 if (slot.HPText != null)
                     slot.HPText.text = $"{unit.CurrentHP}/{unit.Stats.MaxHP}";
+
+                // Update AP pips
+                if (slot.APPips != null)
+                {
+                    int currentAP = unit.CurrentAP;
+                    for (int i = 0; i < slot.APPips.Length; i++)
+                    {
+                        if (slot.APPips[i] == null) continue;
+
+                        bool isFull = i < currentAP;
+                        if (hasSprites && s.APGemFull != null)
+                        {
+                            slot.APPips[i].sprite = isFull ? s.APGemFull : (s.APGemEmpty != null ? s.APGemEmpty : s.APGemFull);
+                            slot.APPips[i].color = isFull ? DOS2Theme.APGreen : new Color(0.3f, 0.3f, 0.3f, 1f);
+                        }
+                        else
+                        {
+                            slot.APPips[i].color = isFull ? DOS2Theme.APGreen : DOS2Theme.PanelBgAlt;
+                        }
+                    }
+                }
 
                 break;
             }
         }
 
-        private void OnTurnChanged(TurnStartedEvent evt) => UpdateHighlights();
+        private void OnTurnChanged(TurnStartedEvent evt)
+        {
+            UpdateHighlights();
+            RefreshAllAP();
+        }
         private void OnUnitSelected(UnitSelectedEvent evt) => UpdateHighlights();
         private void OnUnitDeselected(UnitDeselectedEvent evt) => UpdateHighlights();
 
@@ -306,6 +428,35 @@ namespace TurnBasedTactics.UI
         private void OnUnitDied(UnitDiedEvent evt)
         {
             RebuildPortraits();
+        }
+
+        private void RefreshAllAP()
+        {
+            var s = DOS2Theme.Sprites;
+            bool hasSprites = DOS2Theme.HasSprites;
+
+            foreach (var slot in _slots)
+            {
+                var unit = _registry.GetUnit(slot.UnitId);
+                if (unit == null || slot.APPips == null) continue;
+
+                int currentAP = unit.CurrentAP;
+                for (int i = 0; i < slot.APPips.Length; i++)
+                {
+                    if (slot.APPips[i] == null) continue;
+
+                    bool isFull = i < currentAP;
+                    if (hasSprites && s.APGemFull != null)
+                    {
+                        slot.APPips[i].sprite = isFull ? s.APGemFull : (s.APGemEmpty != null ? s.APGemEmpty : s.APGemFull);
+                        slot.APPips[i].color = isFull ? DOS2Theme.APGreen : new Color(0.3f, 0.3f, 0.3f, 1f);
+                    }
+                    else
+                    {
+                        slot.APPips[i].color = isFull ? DOS2Theme.APGreen : DOS2Theme.PanelBgAlt;
+                    }
+                }
+            }
         }
 
         private void OnDestroy()
@@ -332,6 +483,7 @@ namespace TurnBasedTactics.UI
             public Image HPFillImage;
             public RectTransform HPFillRect;
             public Text HPText;
+            public Image[] APPips;
             public int UnitId;
         }
     }

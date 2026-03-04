@@ -38,6 +38,15 @@ namespace TurnBasedTactics.Grid
         }
 
         /// <summary>
+        /// Look up a registered SurfaceDefinition by type.
+        /// </summary>
+        public SurfaceDefinition GetDefinition(SurfaceType type)
+        {
+            _definitionLookup.TryGetValue(type, out var def);
+            return def;
+        }
+
+        /// <summary>
         /// Create a surface on a hex cell. Handles reactions with existing surfaces.
         /// </summary>
         public void CreateSurface(HexCoord coord, SurfaceDefinition def, int sourceUnitId, HexGridMap gridMap)

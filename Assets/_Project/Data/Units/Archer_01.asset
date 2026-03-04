@@ -15,10 +15,10 @@ MonoBehaviour:
   _unitName: Archer
   _portrait: {fileID: 0}
   _modelPrefab: {fileID: 1916933298521316, guid: 06a217c3ea84f3647bb83f3656e3832b, type: 3}
-  _weaponPrefab: {fileID: 1188651973590630, guid: 49861bdc4ee2dd544b19a340b871619c, type: 3}
+  _weaponPrefab: {fileID: 100000, guid: d9846e0c0b6923d48a1a17570257c243, type: 3}
   _weaponBoneName: Hand_R
   _weaponPositionOffset: {x: 0, y: 0, z: 0}
-  _weaponRotationOffset: {x: 0, y: 0, z: 0}
+  _weaponRotationOffset: {x: 0, y: 90, z: 0}
   _useOriginalMaterials: 1
   _strength: 8
   _finesse: 14
@@ -29,4 +29,5 @@ MonoBehaviour:
   _baseActionPoints: 6
   _level: 1
   _abilities:
+  - {fileID: 11400000, guid: 645de0d0297459a48be04da623a087e9, type: 2}
   - {fileID: 11400000, guid: b8d615cec9447914f8aae79539d742d3, type: 2}

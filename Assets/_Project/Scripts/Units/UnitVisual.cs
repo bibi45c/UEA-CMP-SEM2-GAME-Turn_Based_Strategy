@@ -20,6 +20,9 @@ namespace TurnBasedTactics.Units
         [SerializeField] private Color _playerColor = new Color(0.2f, 0.8f, 0.2f, 0.6f);
         [SerializeField] private Color _enemyColor = new Color(0.8f, 0.2f, 0.2f, 0.6f);
 
+        [Header("Action Animation")]
+        [SerializeField] private float _actionAnimationSpeed = 0.45f;
+
         [Header("Death")]
         [SerializeField] private float _deathFadeDuration = 1.2f;
         [SerializeField] private float _deathSinkDistance = 0.3f;
@@ -67,8 +70,18 @@ namespace TurnBasedTactics.Units
             if (_animator == null)
                 return;
 
+            _animator.speed = _actionAnimationSpeed;
             _animator.ResetTrigger(AttackHash);
             _animator.SetTrigger(AttackHash);
+            StartCoroutine(ResetAnimatorSpeedAfterAction());
+        }
+
+        private IEnumerator ResetAnimatorSpeedAfterAction()
+        {
+            // Wait for the attack animation to finish, then restore normal speed
+            yield return new WaitForSeconds(2f);
+            if (_animator != null)
+                _animator.speed = 1f;
         }
 
         // --- Death Animation ---
