@@ -10,8 +10,9 @@ namespace TurnBasedTactics.UI
     /// <summary>
     /// Screen-space UI bar showing the turn order (initiative sequence).
     /// Displays unit names + HP in order, highlights the active unit.
-    /// Anchored top-left to avoid overlapping the Round banner.
-    /// Slot size auto-scales when many units are present (max ~60% screen width).
+    /// Anchored top-center. Slot size auto-scales when many units are present.
+    /// When HUDSpriteConfig is available, uses Synty Fantasy Warrior sprites;
+    /// otherwise falls back to code-drawn colored rectangles.
     /// </summary>
     public class TurnOrderBar : MonoBehaviour
     {
@@ -29,12 +30,14 @@ namespace TurnBasedTactics.UI
         private const float SlotSpacing = 3f;
         private const float BarPadding = 8f;
         private const float TopMargin = 10f;
-        private const float MaxBarWidthRatio = 0.6f; // max 60% of reference width
+        private const float MaxBarWidthRatio = 0.6f;
 
-        private static readonly Color PlayerSlotColor = new Color(0.15f, 0.35f, 0.6f, 0.9f);
-        private static readonly Color EnemySlotColor = new Color(0.55f, 0.12f, 0.12f, 0.9f);
-        private static readonly Color ActiveBorderColor = new Color(1f, 0.85f, 0.2f, 1f);
-        private static readonly Color InactiveBorderColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+        // DOS2 color palette
+        private static readonly Color PlayerBorderColor = DOS2Theme.PartyBlue;
+        private static readonly Color EnemyBorderColor = DOS2Theme.EnemyRed;
+        private static readonly Color ActiveBorderColor = DOS2Theme.GoldHighlight;
+        private static readonly Color InactiveBorderColor = DOS2Theme.InactiveBorder;
+        private static readonly Color SlotFillColor = DOS2Theme.PanelBgAlt;
 
         public void Initialize(TurnManager turnManager, UnitRegistry registry)
         {
@@ -78,8 +81,22 @@ namespace TurnBasedTactics.UI
             _barContainer.anchoredPosition = new Vector2(0f, -TopMargin);
 
             // Background panel
+            var s = DOS2Theme.Sprites;
             var bgImage = containerGO.AddComponent<Image>();
-            bgImage.color = new Color(0.05f, 0.05f, 0.08f, 0.75f);
+            if (s != null && s.PanelBackground != null)
+            {
+                bgImage.sprite = s.PanelBackground;
+                bgImage.type = Image.Type.Sliced;
+                bgImage.color = Color.white; // Let sprite's own colors show through
+            }
+            else
+            {
+                bgImage.color = DOS2Theme.PanelBg85;
+            }
+
+            // Shadow behind the bar
+            if (DOS2Theme.HasSprites)
+                DOS2Theme.CreateShadow("BarShadow", containerGO.transform);
 
             // Horizontal layout
             _layout = containerGO.AddComponent<HorizontalLayoutGroup>();
@@ -119,7 +136,7 @@ namespace TurnBasedTactics.UI
             }
 
             float slotW = ComputeSlotWidth(aliveCount);
-            float slotH = BaseSlotHeight * (slotW / BaseSlotWidth); // keep aspect ratio
+            float slotH = BaseSlotHeight * (slotW / BaseSlotWidth);
 
             for (int i = 0; i < turnOrder.Count; i++)
             {
@@ -132,9 +149,6 @@ namespace TurnBasedTactics.UI
             }
         }
 
-        /// <summary>
-        /// Compute slot width so the bar fits within MaxBarWidthRatio of the reference width.
-        /// </summary>
         private float ComputeSlotWidth(int unitCount)
         {
             if (unitCount <= 0) return BaseSlotWidth;
@@ -149,6 +163,8 @@ namespace TurnBasedTactics.UI
         private TurnOrderSlot CreateSlot(UnitRuntime unit, bool isActive, float slotW, float slotH)
         {
             bool isPlayer = unit.TeamId == TurnManager.PlayerTeamId;
+            var s = DOS2Theme.Sprites;
+            bool hasSprites = DOS2Theme.HasSprites;
 
             // Slot root
             var slotGO = new GameObject($"Slot_{unit.Definition.UnitName}", typeof(RectTransform));
@@ -161,56 +177,63 @@ namespace TurnBasedTactics.UI
             layoutElem.preferredWidth = slotW;
             layoutElem.preferredHeight = slotH;
 
-            // Border (highlight for active)
+            // Border — sprite or colored rectangle
             var borderImg = slotGO.AddComponent<Image>();
-            borderImg.color = isActive ? ActiveBorderColor : InactiveBorderColor;
+            Color factionBorder = isPlayer ? PlayerBorderColor : EnemyBorderColor;
+
+            if (hasSprites && s.TurnSlotFrame != null)
+            {
+                borderImg.sprite = s.TurnSlotFrame;
+                borderImg.type = Image.Type.Sliced;
+                borderImg.color = isActive ? ActiveBorderColor : factionBorder;
+            }
+            else
+            {
+                borderImg.color = isActive ? ActiveBorderColor : factionBorder;
+            }
 
             // Inner background
+            float bw = isActive ? 3f : 2f;
             var innerGO = new GameObject("Inner", typeof(RectTransform));
             innerGO.transform.SetParent(slotGO.transform, false);
             var innerRect = innerGO.GetComponent<RectTransform>();
             innerRect.anchorMin = Vector2.zero;
             innerRect.anchorMax = Vector2.one;
-            innerRect.offsetMin = new Vector2(2f, 2f);
-            innerRect.offsetMax = new Vector2(-2f, -2f);
+            innerRect.offsetMin = new Vector2(bw, bw);
+            innerRect.offsetMax = new Vector2(-bw, -bw);
 
             var innerImg = innerGO.AddComponent<Image>();
-            innerImg.color = isPlayer ? PlayerSlotColor : EnemySlotColor;
+            if (hasSprites && s.SlotBackground != null)
+            {
+                innerImg.sprite = s.SlotBackground;
+                innerImg.type = Image.Type.Sliced;
+                innerImg.color = Color.white; // Let sprite's own colors show through
+            }
+            else
+            {
+                innerImg.color = SlotFillColor;
+            }
 
             // Unit name (lower 65%)
-            var nameGO = new GameObject("Name", typeof(RectTransform));
-            nameGO.transform.SetParent(innerGO.transform, false);
-            var nameRect = nameGO.GetComponent<RectTransform>();
+            var nameText = DOS2Theme.CreateText("Name", innerGO.transform,
+                unit.Definition.UnitName, 11, Color.white, TextAnchor.MiddleCenter);
+            var nameRect = nameText.GetComponent<RectTransform>();
             nameRect.anchorMin = Vector2.zero;
             nameRect.anchorMax = new Vector2(1f, 0.6f);
             nameRect.offsetMin = new Vector2(2f, 1f);
             nameRect.offsetMax = new Vector2(-2f, 0f);
-
-            var nameText = nameGO.AddComponent<Text>();
-            nameText.text = unit.Definition.UnitName;
-            nameText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            nameText.fontSize = 11;
-            nameText.color = Color.white;
-            nameText.alignment = TextAnchor.MiddleCenter;
             nameText.resizeTextForBestFit = true;
             nameText.resizeTextMinSize = 7;
             nameText.resizeTextMaxSize = 12;
 
             // HP text (upper 40%)
-            var hpGO = new GameObject("HP", typeof(RectTransform));
-            hpGO.transform.SetParent(innerGO.transform, false);
-            var hpRect = hpGO.GetComponent<RectTransform>();
+            var hpText = DOS2Theme.CreateText("HP", innerGO.transform,
+                $"{unit.CurrentHP}/{unit.Stats.MaxHP}", 10, DOS2Theme.TextGray, TextAnchor.MiddleCenter);
+            var hpRect = hpText.GetComponent<RectTransform>();
             hpRect.anchorMin = new Vector2(0f, 0.6f);
             hpRect.anchorMax = Vector2.one;
             hpRect.offsetMin = new Vector2(2f, 0f);
             hpRect.offsetMax = new Vector2(-2f, -2f);
-
-            var hpText = hpGO.AddComponent<Text>();
-            hpText.text = $"{unit.CurrentHP}/{unit.Stats.MaxHP}";
-            hpText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            hpText.fontSize = 10;
-            hpText.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-            hpText.alignment = TextAnchor.MiddleCenter;
             hpText.resizeTextForBestFit = true;
             hpText.resizeTextMinSize = 7;
             hpText.resizeTextMaxSize = 10;

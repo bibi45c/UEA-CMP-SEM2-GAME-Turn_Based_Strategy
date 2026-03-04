@@ -38,6 +38,9 @@ namespace TurnBasedTactics.Core
         [Header("Audio")]
         [SerializeField] private CombatAudioConfig _audioConfig;
 
+        [Header("UI")]
+        [SerializeField] private HUDSpriteConfig _hudSpriteConfig;
+
         [Header("Test Spawn Data")]
         [SerializeField] private SpawnData[] _testSpawns;
 
@@ -95,6 +98,17 @@ namespace TurnBasedTactics.Core
 
             // 3b. Ensure EventSystem exists (required for uGUI raycasting)
             EnsureEventSystem();
+
+            // 3c. Wire HUD sprite config into DOS2Theme
+            if (_hudSpriteConfig != null)
+            {
+                DOS2Theme.Sprites = _hudSpriteConfig;
+                Debug.Log("[GameBootstrap] HUD sprite config wired into DOS2Theme.");
+            }
+            else
+            {
+                Debug.LogWarning("[GameBootstrap] No HUDSpriteConfig assigned — UI will use fallback rectangles.");
+            }
 
             // 4. Grid
             InitializeGrid();
@@ -321,6 +335,51 @@ namespace TurnBasedTactics.Core
             }
         }
 
+        private void CreateTestOilPuddles(HexGridMap gridMap)
+        {
+            if (_combatController == null || _combatController.SurfaceSystem == null)
+            {
+                Debug.LogWarning("[GameBootstrap] Cannot create oil puddles: SurfaceSystem not initialized.");
+                return;
+            }
+
+            // Find the Oil surface definition from the registered definitions
+            var oilDef = _combatController.SurfaceSystem.GetDefinition(SurfaceType.Oil);
+            if (oilDef == null)
+            {
+                Debug.LogWarning("[GameBootstrap] OilSurface definition not registered in SurfaceSystem.");
+                return;
+            }
+
+            // Create oil puddles ON and around enemy units for Fire Bolt testing
+            var enemyUnits = _registry.GetTeamUnits(1);
+            if (enemyUnits.Count == 0) return;
+
+            int puddleCount = 0;
+
+            // Place oil on each enemy's cell
+            foreach (var enemy in enemyUnits)
+            {
+                _combatController.SurfaceSystem.CreateSurface(enemy.GridPosition, oilDef, -1, gridMap);
+                puddleCount++;
+                Debug.Log($"[GameBootstrap] Created oil puddle under {enemy.Definition.UnitName} at {enemy.GridPosition}");
+            }
+
+            // Also place oil on a few adjacent cells around first enemy
+            var neighbors = gridMap.GetNeighbors(enemyUnits[0].GridPosition);
+            foreach (var neighborCell in neighbors)
+            {
+                if (puddleCount >= 5) break;
+                if (neighborCell.Walkable && !neighborCell.IsOccupied)
+                {
+                    _combatController.SurfaceSystem.CreateSurface(neighborCell.Coord, oilDef, -1, gridMap);
+                    puddleCount++;
+                }
+            }
+
+            Debug.Log($"[GameBootstrap] Created {puddleCount} test oil puddles for Fire Bolt testing.");
+        }
+
         private void InitializeCombat()
         {
             if (_combatRoot == null)
@@ -362,12 +421,15 @@ namespace TurnBasedTactics.Core
             _combatController.Initialize(_registry, gridMap, spawner, selectionMgr);
             InitializeSurfaceVisualizer(gridMap);
             InitializeCombatHud();
+            InitializeActionBar();
             InitializeCombatWorldUI(spawner);
             InitializeCombatVFX(spawner);
             InitializeCombatAudio();
             InitializeTurnOrderBar();
             InitializePartyPortraits(selectionMgr);
+            InitializeCombatLog();
             InitializeResultsScreen();
+            CreateTestOilPuddles(gridMap);
             _combatController.StartCombat();
             Debug.Log("[GameBootstrap] Combat system initialized and started.");
         }
@@ -396,6 +458,20 @@ namespace TurnBasedTactics.Core
 
             hud.Initialize(_combatController);
             Debug.Log("[GameBootstrap] Combat HUD initialized.");
+        }
+
+        private void InitializeActionBar()
+        {
+            if (_uiRoot == null || _combatController == null)
+                return;
+
+            var actionBar = _uiRoot.GetComponent<ActionBar>();
+            if (actionBar == null)
+                actionBar = _uiRoot.gameObject.AddComponent<ActionBar>();
+
+            actionBar.Initialize(_combatController);
+            actionBar.WireButtonCallbacks();
+            Debug.Log("[GameBootstrap] Action Bar (DOS2 HUD) initialized.");
         }
 
         private void InitializeCombatWorldUI(UnitSpawner spawner)
@@ -471,6 +547,19 @@ namespace TurnBasedTactics.Core
 
             panel.Initialize(_registry, selectionMgr, _combatController);
             Debug.Log("[GameBootstrap] Party Portrait Panel initialized.");
+        }
+
+        private void InitializeCombatLog()
+        {
+            if (_uiRoot == null || _registry == null)
+                return;
+
+            var combatLog = _uiRoot.GetComponent<CombatLog>();
+            if (combatLog == null)
+                combatLog = _uiRoot.gameObject.AddComponent<CombatLog>();
+
+            combatLog.Initialize(_registry);
+            Debug.Log("[GameBootstrap] Combat Log initialized.");
         }
 
         private void InitializeResultsScreen()
