@@ -41,6 +41,7 @@ namespace TurnBasedTactics.Core
 
         [Header("Audio")]
         [SerializeField] private CombatAudioConfig _audioConfig;
+        [SerializeField] private ExplorationAudioConfig _explorationAudioConfig;
 
         [Header("UI")]
         [SerializeField] private HUDSpriteConfig _hudSpriteConfig;
@@ -66,6 +67,7 @@ namespace TurnBasedTactics.Core
         private UnitRegistry _registry;
         private CombatSceneController _combatController;
         private ExplorationController _explorationController;
+        private ExplorationAudioManager _explorationAudio;
         private ExplorationHUD _explorationHUD;
         private ExplorationMinimap _explorationMinimap;
         private SpawnData[] _combatSpawnOverrides;
@@ -251,6 +253,9 @@ namespace TurnBasedTactics.Core
             InitializeExplorationHUD();
             InitializeExplorationMinimap();
 
+            // Initialize exploration audio (ambient dungeon music)
+            InitializeExplorationAudio();
+
             Debug.Log("[GameBootstrap] Exploration phase initialized.");
         }
 
@@ -280,7 +285,16 @@ namespace TurnBasedTactics.Core
                 _explorationController.DespawnParty();
             }
 
-            // 3. Clean up exploration UI
+            // 3. Fade out exploration music
+            if (_explorationAudio != null)
+            {
+                _explorationAudio.FadeOut();
+                // Destroy after fade completes
+                Destroy(_explorationAudio, 2f);
+                _explorationAudio = null;
+            }
+
+            // 4. Clean up exploration UI
             if (_explorationHUD != null)
             {
                 _explorationHUD.Cleanup();
@@ -866,6 +880,23 @@ namespace TurnBasedTactics.Core
                 && cell.Walkable
                 && !cell.IsOccupied
                 && !claimed.Contains(coord);
+        }
+
+        private void InitializeExplorationAudio()
+        {
+            if (_explorationAudioConfig == null)
+            {
+                Debug.LogWarning("[GameBootstrap] No ExplorationAudioConfig assigned — exploration music disabled.");
+                return;
+            }
+
+            var audioRoot = _combatRoot != null ? _combatRoot : _systemsRoot;
+            _explorationAudio = audioRoot.GetComponent<ExplorationAudioManager>();
+            if (_explorationAudio == null)
+                _explorationAudio = audioRoot.gameObject.AddComponent<ExplorationAudioManager>();
+
+            _explorationAudio.Initialize(_explorationAudioConfig);
+            Debug.Log("[GameBootstrap] Exploration Audio initialized.");
         }
 
         private void InitializeExplorationHUD()

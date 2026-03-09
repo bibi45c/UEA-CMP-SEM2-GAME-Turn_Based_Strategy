@@ -11,6 +11,44 @@ without diffing code.
 
 ---
 
+## 2026-03-09 (Session 14) — Exploration Audio, Coursework Report & Video
+
+### Completed (Exploration Audio)
+- **ExplorationAudioManager.cs** — 172-line audio manager for exploration phase. BGM playback with crossfade support, ambient sound layers, event-driven triggers via EventBus. 8-channel SFX pool with pitch variation (±15%).
+- **ExplorationAudioConfig.cs** — ScriptableObject config for exploration audio settings (BGM clips, ambient clips, volume levels, crossfade duration).
+- **ExplorationAudioConfig.asset** — Data asset with default audio configuration.
+- **GameBootstrap integration** — Added audio initialization to GameBootstrap, wired into exploration phase startup.
+
+### Completed (Coursework Deliverables — Not in Git)
+- **Game Design Report** — 10-section report (Word format): Game Overview, System Structure, two Prototype Elements (Exploration→Combat transition + Hex-grid Combat), Additional Features, GitHub, Development Process (incl. AI-assisted dev with Claude Code + MCP-Unity), Project Scope, Planned Features, Conclusion. Three draw.io diagrams: System Map, Flow A (Exploration→Combat), Flow B (One Combat Action).
+- **Video Script** — Bilingual CN/EN voiceover script matching game recording. Simple vocabulary, conversational tone. ~3:15 total: intro → exploration → combat → system design → future plans.
+- **Game Recording** — OBS 1920×1080 60fps NVENC recording of full gameplay loop (explore → encounter → 3 rounds combat → victory).
+
+### Files Created
+- `Assets/_Project/Scripts/Exploration/ExplorationAudioConfig.cs`
+- `Assets/_Project/Scripts/Exploration/ExplorationAudioManager.cs`
+- `Assets/_Project/Data/Audio/ExplorationAudioConfig.asset`
+
+### Files Modified
+- `Assets/_Project/Scripts/Core/GameBootstrap.cs` (audio init integration)
+- `Assets/_Project/Scenes/Combat/Combat_RuinsPrototype_01.unity` (scene update)
+- `.gitignore` (exclude .claude directory)
+
+### Next Steps (Session 15)
+1. **Merge PR to main** — Merge `feature/combat-visualizer-and-bootstrap` into `main`
+2. **Warrior Stun Ability** — "Shield Bash" with stun chance + pity system
+3. **Equipment System** — EquipmentDefinition SO, EquipmentLoadout, stat bonuses
+4. **Exploration Polish** — Enemy aggro indicator, transition animation, area boundaries
+5. **Target Preview** — Hover damage prediction UI for abilities
+
+### Known Issues
+- **Oil ignition** — Fire abilities don't convert oil surfaces to fire
+- **FireBolt ground targeting** — Currently `SingleEnemy` only, cannot target ground tiles
+- **Exploration camera clipping** — Close zoom (5) may clip through dungeon geometry
+- **Enemy patrol height** — Patrol movement may cause enemies to drift vertically
+
+---
+
 ## 2026-03-04 (Session 13) — Exploration Mode: Party, Enemies, HUD, Minimap
 
 ### Completed (Exploration Phase Core)

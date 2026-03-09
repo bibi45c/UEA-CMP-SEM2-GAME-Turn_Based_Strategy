@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3e0c8f808fd1cd4681cf7940bde4c12, type: 3}
+  m_Name: ExplorationAudioConfig
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Exploration.ExplorationAudioConfig
+  ExplorationIntro: {fileID: 8300000, guid: 3044afc4740993148b4b92ed31db51c0, type: 3}
+  ExplorationLoop: {fileID: 8300000, guid: 2ae8c41006fb39c478cf5db6b60fddcd, type: 3}
+  MusicVolume: 0.35
+  CrossfadeDuration: 2
+  FadeOutDuration: 1.5
