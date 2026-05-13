@@ -11,6 +11,95 @@ without diffing code.
 
 ---
 
+## 2026-05-14 (Session 16) — Office Cutscene Pipeline & Async Combat Preload
+
+### Completed
+
+**Three-cutscene Office_01 narrative flow**
+- `OfficeBootstrap` now drives three sequential cutscenes via serialized arrays: `_openingSlides` (5 frames, plays on scene load), `_sleepSlides` (8 frames, triggered by desk interaction), `_dungeonSlides` (7 frames, plays after sleep and bridges into combat scene).
+- Frame content imported from `Assets/Cutscene/frame1-A~E`, `frame2-A~H`, and `Assets/_Project/Art/Cutscenes/Dungeon/frame3-A~E` (Texture2D auto-converted to Sprite). All captions sourced from / synced with `Docs/Storyboard_Complete.md`.
+- `PlayOpeningCutscene()` replaces the old `PlayTimeOverlay` — disables player input, plays slides via `CutsceneController.PlaySlides()`, re-enables input on completion.
+- `SleepThenPlay()` rewritten: sleep cutscene → start `SceneManager.LoadSceneAsync(_combatScene)` with `allowSceneActivation = false` → play dungeon cutscene in parallel → wait for `loadOp.progress >= 0.9` → activate. Deferred activation also delays Awake/Start (incl. BGM) until cutscene ends.
+
+**CutsceneController fixes**
+- `??` operator on `GetComponent<CanvasGroup>()` triggered `MissingComponentException` due to Unity fake-null; replaced with explicit `== null` guard.
+- `CanvasGroup.alpha = 0` left over from prior `FadeCanvasOut()` made next cutscene invisible; added `ResetCanvasAlpha()` at the start of `SlideshowRoutine`/`PlayRoutine`.
+- `FadeImage` hard-coded `Color(1,1,1,a)`, overriding the `Color.clear` set for image=null slides → previous sprite leaked into transition frames. Fixed by disabling `_slideImage.enabled` and clearing sprite when no image.
+- Added `keepBlackAfter` parameter + `FadeOutCanvas()` API. Sleep & dungeon cutscenes now use `keepBlackAfter = true` so the canvas stays opaque between cutscenes and during scene activation — eliminates the office-scene flash that appeared during async load.
+
+**Office environment polish**
+- `PlayerSpawnPoint` repositioned from (16.10, 0, 3.16) to (12.5, 0, 5) to align with cutscene staging.
+- Window blinds mesh swapped: `SM_Bld_Wall_Window_Blinds_Up_03` → `Open_03` (half-pulled with visible slats). GameObject renamed to match.
+- Created `NightBackdrop_Black.mat` (Unlit/Color, pure black). Quad placed outside Window 03 at world (-25.46, 1.50, 9.99) under `NightBackdrops` parent — hides daytime skybox through the window.
+
+**Combat polish**
+- `CombatAudioConfig.asset`: MusicVolume `0.40 → 0.21` (-30%, then another -30%); SFXVolume `0.70 → 0.15` (-30%, then -50%).
+- `UnitVisual.Initialize()` forces `animator.applyRootMotion = false` (Synty walk anims contained Y root motion that lifted small enemies off the floor). `Update()` movement step now clamps `position.y` to the waypoint Y as a defense-in-depth measure.
+- `ExplorationMinimap.RightMargin` 10 → 130: minimap clears the FPS counter / Low / Med / High quality buttons in the top-right corner.
+
+**Storyboard documentation**
+- `Docs/Storyboard_Complete.md`: collapsed old `镜头 2-6` (workstation sequence) into a single unified `镜头 2: 工位 → 入睡` with 8 sub-frames; added `镜头 3` (dungeon entrance, 7 frames including 3-0 transition and 3-F system prompt); top time-axis table refreshed with `SlideArray` field bindings; added **台词** blocks for every frame across all three cutscenes, all synchronized with scene state.
+
+### Files Created
+- `Assets/_Project/Art/Materials/NightBackdrop_Black.mat`
+- `Assets/Cutscene/frame2-A~H.png` + `.meta` (user-supplied, imported as Sprite)
+- `Assets/_Project/Art/Cutscenes/Dungeon/frame3-A~E.png` + `.meta` (user-supplied, imported as Sprite)
+
+### Files Modified
+- `Assets/_Project/Scripts/Office/OfficeBootstrap.cs` (3-cutscene pipeline + async preload)
+- `Assets/_Project/Scripts/Office/CutsceneController.cs` (keepBlackAfter, ResetCanvasAlpha, image=null handling, fake-null fix)
+- `Assets/_Project/Scripts/Units/UnitVisual.cs` (disable root motion + Y-clamp)
+- `Assets/_Project/Scripts/UI/ExplorationMinimap.cs` (right margin)
+- `Assets/_Project/Data/Audio/CombatAudioConfig.asset` (volumes)
+- `Assets/_Project/Scenes/Office/Office_01.unity` (spawn point, blinds, slides, NightBackdrop)
+- `Docs/Storyboard_Complete.md` (full restructure + dialogue blocks)
+- `Assets/Cutscene/frame1-A~E.png.meta` (Texture2D → Sprite)
+
+### Notes
+- Skybox darkening currently scoped to one window only; can replicate the Quad+Unlit pattern for other windows if needed for a full-night feel.
+- `_openingSlides` opening cutscene drops the legacy `PlayTimeOverlay` text-overlay; if no slides are wired, code falls back to the old overlay.
+- BGM safety during async load relies on `allowSceneActivation = false` deferring all Awake/Start in the combat scene; AudioSources with `playOnAwake = true` are safely silent until activation.
+
+### Next Steps
+1. Walk through the full Office → Combat flow end-to-end and verify no audio/visual hiccups during the activation handoff.
+2. Outstanding 002 submission tasks from Session 15 still pending — GitHub Release, video, PDF.
+3. Consider darkening remaining office windows (and possibly swapping skybox to a night variant) for consistency.
+4. Inherited known issues from Session 14: oil ignition, FireBolt ground targeting, exploration camera clipping, enemy patrol height.
+
+---
+
+## 2026-05-13 (Session 15) — ESC Pause Menu, FPS Counter & Game Settings
+
+### Completed
+- **GameSettings.cs** — Static PlayerPrefs-backed settings store. BGMVolume, SFXVolume, QualityLevel (Low/Med/High = Unity level 0/2/5), TargetFrameRate (30/60/120/-1), VSync, GameSpeed (0.5/1/2), ShowFPS. `ApplyAll()` pushes saved values to Unity systems on startup. Events `OnBGMVolumeChanged` / `OnSFXVolumeChanged` for live notification.
+- **FPSCounter.cs** — Always-on FPS display in top-right corner (sortingOrder=200). Rolling 0.5s average using `Time.unscaledDeltaTime` — reads correctly regardless of game speed or pause. Toggle via `GameSettings.ShowFPS`. Gold-green text with outline.
+- **PauseMenuController.cs** — ESC key toggles pause (`Time.timeScale=0` / restore). Menu built in code using DOS2Theme helpers. Options: Show FPS toggle, Graphics (Low/Med/High), Frame Rate (30/60/120/Max), VSync, Game Speed (0.5x/1x/2x), BGM Volume slider, SFX Volume slider, Resume, Quit. Active selection highlighted in gold. Settings persisted via GameSettings/PlayerPrefs.
+- **CombatAudioManager** — Added `_bgmMultiplier` / `_sfxMultiplier` fields. `ApplyVolume(bgm, sfx)` updates multipliers and immediately adjusts active source volume. All `PlayMusic`, crossfade, and `PlaySFX` calls now factor in multipliers.
+- **ExplorationAudioManager** — Same `_bgmMultiplier` + `ApplyVolume(bgm, sfx)` pattern.
+- **GameBootstrap** — Calls `GameSettings.ApplyAll()`, `InitializeFPSCounter()`, `InitializePauseMenu()` in core init. After audio manager init, calls `ApplyVolume()` with saved settings and wires the manager into `PauseMenuController.Instance`.
+
+### Files Created
+- `Assets/_Project/Scripts/Core/GameSettings.cs`
+- `Assets/_Project/Scripts/UI/FPSCounter.cs`
+- `Assets/_Project/Scripts/UI/PauseMenuController.cs`
+
+### Files Modified
+- `Assets/_Project/Scripts/Combat/CombatAudioManager.cs` (volume multipliers + ApplyVolume)
+- `Assets/_Project/Scripts/Exploration/ExplorationAudioManager.cs` (volume multipliers + ApplyVolume)
+- `Assets/_Project/Scripts/Core/GameBootstrap.cs` (FPSCounter/PauseMenu init + audio wiring)
+
+### Notes for 002 Submission
+- FPS counter directly addresses the "game statistics (e.g. frame rate)" rubric point (5%)
+- Game Speed via `Time.timeScale` affects AI coroutines, animations, movement — audio pitch unchanged (acceptable)
+- GitHub Release must be created before 2026-05-15 15:00 deadline
+
+### Next Steps (pre-submission)
+1. **Create GitHub Release** — `gh release create v1.0` before 2026-05-15 15:00
+2. **Record video demo** — ≤12 min, show Synty asset download pages, AI code, animations
+3. **Submit PDF to Blackboard** — GitHub link + YouTube link only
+
+---
+
 ## 2026-03-09 (Session 14) — Exploration Audio, Coursework Report & Video
 
 ### Completed (Exploration Audio)

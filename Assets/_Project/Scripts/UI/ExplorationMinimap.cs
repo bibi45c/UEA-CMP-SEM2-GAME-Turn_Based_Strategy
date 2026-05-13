@@ -26,7 +26,7 @@ namespace TurnBasedTactics.UI
         private const float WorldRadius = 25f;
         private const float DotSize = 7f;
         private const float PlayerDotSize = 9f;
-        private const float RightMargin = 10f;
+        private const float RightMargin = 130f;   // clears FPS label + quality buttons in top-right
         private const float TopMargin = 10f;
 
         public void Initialize(

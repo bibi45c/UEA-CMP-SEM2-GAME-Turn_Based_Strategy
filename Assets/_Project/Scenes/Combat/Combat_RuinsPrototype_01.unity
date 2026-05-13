@@ -84991,6 +84991,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1626853972}
   - component: {fileID: 1626853973}
+  - component: {fileID: 1626853974}
   m_Layer: 0
   m_Name: CombatRoot
   m_TagString: Untagged
@@ -85030,6 +85031,19 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0efd2a841937df341875aaa2acacab7f, type: 2}
   - {fileID: 11400000, guid: efb1a3468ebfb664abf069ec1144c1fb, type: 2}
   - {fileID: 11400000, guid: 0f5c89a110ca1f54999ed166c877a270, type: 2}
+--- !u!114 &1626853974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1626853971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1ff038ecd4ebe140bb100495631bc21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TurnBasedTactics.Office.BadEndingController
+  _officeScene: Office_01
 --- !u!1001 &1627996278
 PrefabInstance:
   m_ObjectHideFlags: 0

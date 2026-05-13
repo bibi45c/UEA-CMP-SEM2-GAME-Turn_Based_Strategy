@@ -138,7 +138,11 @@ namespace TurnBasedTactics.Core
             // 3b. Ensure EventSystem exists (required for uGUI raycasting)
             EnsureEventSystem();
 
-            // 3c. Wire HUD sprite config into DOS2Theme
+            // 3c. Apply saved settings and start persistent UI systems
+            GameSettings.ApplyAll();
+            InitializeFPSCounter();
+
+            // 3d. Wire HUD sprite config into DOS2Theme
             if (_hudSpriteConfig != null)
             {
                 DOS2Theme.Sprites = _hudSpriteConfig;
@@ -190,6 +194,14 @@ namespace TurnBasedTactics.Core
             esGO.AddComponent<EventSystem>();
             esGO.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
             Debug.Log("[GameBootstrap] EventSystem created.");
+        }
+
+        private void InitializeFPSCounter()
+        {
+            var go = new GameObject("GameOverlayHUD");
+            go.transform.SetParent(_uiRoot, false);
+            go.AddComponent<TurnBasedTactics.UI.GameOverlayHUD>().Initialize();
+            Debug.Log("[GameBootstrap] GameOverlayHUD initialized.");
         }
 
         private void InitializeExploration()
@@ -702,6 +714,7 @@ namespace TurnBasedTactics.Core
                 audioManager = _combatRoot.gameObject.AddComponent<CombatAudioManager>();
 
             audioManager.Initialize(_audioConfig);
+            audioManager.ApplyVolume(GameSettings.BGMVolume, GameSettings.SFXVolume);
             Debug.Log("[GameBootstrap] Combat Audio system initialized.");
         }
 
@@ -896,6 +909,7 @@ namespace TurnBasedTactics.Core
                 _explorationAudio = audioRoot.gameObject.AddComponent<ExplorationAudioManager>();
 
             _explorationAudio.Initialize(_explorationAudioConfig);
+            _explorationAudio.ApplyVolume(GameSettings.BGMVolume, GameSettings.SFXVolume);
             Debug.Log("[GameBootstrap] Exploration Audio initialized.");
         }
 
