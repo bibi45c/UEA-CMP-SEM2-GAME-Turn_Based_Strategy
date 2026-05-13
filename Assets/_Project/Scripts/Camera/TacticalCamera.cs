@@ -93,6 +93,11 @@ namespace TurnBasedTactics.Camera
             _targetZoom = _config.DefaultZoomDistance;
             _currentYaw = transform.eulerAngles.y;
             _targetYaw = _currentYaw;
+
+            // Derive initial focus point from the camera's scene-placed position so
+            // LateUpdate doesn't lerp in from Vector3.zero on the first frame.
+            var rot = Quaternion.Euler(_config.Pitch, _currentYaw, 0f);
+            _focusPoint = transform.position - rot * (Vector3.back * _currentZoom);
         }
 
         private void LateUpdate()

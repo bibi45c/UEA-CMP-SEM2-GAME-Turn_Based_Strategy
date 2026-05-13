@@ -53,6 +53,8 @@ namespace TurnBasedTactics.Units
         public void Initialize(Animator animator, int teamId)
         {
             _animator = animator;
+            if (_animator != null)
+                _animator.applyRootMotion = false;   // Synty walk anims have Y root motion that lifts the unit off the floor.
             CreateSelectionRing(teamId);
         }
 
@@ -269,8 +271,11 @@ namespace TurnBasedTactics.Units
             }
             else
             {
-                // Continue toward waypoint
-                transform.position = current + direction.normalized * stepSize;
+                // Continue toward waypoint — snap Y to target so animation root motion
+                // or accumulated float error can't lift the unit off the floor.
+                var next = current + direction.normalized * stepSize;
+                next.y = target.y;
+                transform.position = next;
             }
 
             // Face movement direction (horizontal only)
