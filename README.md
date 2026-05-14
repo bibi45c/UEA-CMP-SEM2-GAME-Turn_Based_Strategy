@@ -14,6 +14,48 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ---
 
+## Story / 背景故事
+
+**《Deadline》 / 《最后期限》**
+
+> 2:59 AM. A game studio, development department.
+> 凌晨 2:59。某游戏公司，开发部。
+
+Three years ago, **you** joined a mid-sized game studio as a programmer. Three long years of code. Yesterday, your game — the thing that kept you up through countless nights — finally shipped.
+
+三年前，**你**加入了这家不大不小的游戏公司，做了三年程序。你的游戏——那个让你熬了无数个夜的东西——昨天终于上线了。
+
+But the world didn't applaud.
+
+但现实没有给你掌声。
+
+Four hours after launch, negative reviews avalanched in: **1,243 one-star ratings. All of them about bugs.** At 6 PM, the boss snapped at the all-hands meeting:
+
+发布后四小时，差评像雪崩一样涌来：**1,243 条一星。全是 bug。** 下午六点，老板在全组例会上失控爆发：
+
+> *"If there's no hotfix by 9 AM tomorrow, the whole team is fired."*
+> *"明早九点前没有修复版本，整个团队解散。"*
+
+The meeting ended. Coworkers drifted away — some for a smoke, some straight home. No one said *"I'll stay and help."*
+
+会议结束。同事们陆续散去——有人去抽烟，有人直接回家，没有人说"我留下来帮你"。
+
+Only you, sitting at your desk, staring at a screen full of errors. You ate a bowl of instant noodles in the break room and pushed the empty bowl aside. At 3 AM you came back to your workstation. Opened the IDE. The energy drink had gone cold. Your eyelids grew heavier and heavier...
+
+只有你，坐在工位前，对着满屏的报错发呆。你去休息室泡了碗面，把它吃完，把空碗推到一边。凌晨三点，你回到工位，打开 IDE。能量饮料凉透了，眼皮越来越重……
+
+You fell asleep on the keyboard. Then a line lit up the screen:
+
+键盘上，你睡了过去。屏幕突然亮起一行字——
+
+```
+WARNING: Developer has entered the runtime environment.
+```
+
+**You have entered your own game. / 你进入了你自己的游戏。**
+
+---
+
 ## Features / 功能特性
 
 ### Combat System / 战斗系统
@@ -72,8 +114,36 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ### Audio / 音效
 
-- **Combat Audio / 战斗音效** — Sword hits, bow shots, spell casts, footsteps, UI feedback sounds
-  刀剑命中、弓箭射击、法术释放、脚步声、UI 反馈音效
+- **Combat Audio / 战斗音效** — Sword hits, bow shots, spell casts, footsteps, UI feedback sounds (music & SFX volumes balanced for ambient play)
+  刀剑命中、弓箭射击、法术释放、脚步声、UI 反馈音效（音乐与音效音量平衡至环境聆听）
+
+- **Exploration Audio / 探索音效** — Background music with crossfade, ambient layers, event-driven SFX
+  探索阶段背景音乐与交叉淡入、环境音层、事件驱动音效
+
+### Story Cutscenes / 故事过场
+
+- **Four-cutscene narrative / 四段式叙事** — Opening (5 frames) on first load, Sleep (8 frames) when interacting with the desk, Dungeon-entry (7 frames) bridging into combat, Victory (7 frames) after the final battle
+  开场动画（5 帧自动播放）、桌前互动触发睡前动画（8 帧）、衔接战斗场景的地牢入场动画（7 帧）、最终胜利动画（7 帧）
+
+- **Async scene preload / 异步场景预加载** — Combat scene loads in the background during the dungeon cutscene; activation deferred so the new scene's BGM never fires early
+  地牢动画播放期间后台异步加载战斗场景，延迟激活避免 BGM 提前响
+
+- **Click-to-quit credits / 点击退出片尾** — Final canvas after the ending: "Made by Jiayu Jiang" + "In collaboration with Opus 4.7 & GPT 5.5"
+  胜利动画后片尾画布："Made by Jiayu Jiang" + "In collaboration with Opus 4.7 & GPT 5.5"，点击关闭游戏
+
+- **Bilingual captions / 中英双语字幕** — All 26 cutscene captions written in English; storyboard doc keeps Chinese alongside
+  26 帧字幕全英文显示，分镜文档 `Docs/Storyboard_Complete.md` 保留中英文对照
+
+### Settings & Pause Menu / 设置与暂停菜单
+
+- **ESC Pause Menu / ESC 暂停菜单** — Pauses `Time.timeScale`. Options: BGM/SFX volume sliders, graphics quality (Low/Med/High), target frame rate (30/60/120/Max), vsync, game speed (0.5x/1x/2x)
+  ESC 暂停 `Time.timeScale`。包含 BGM/SFX 音量、画质（低/中/高）、帧率上限、垂直同步、游戏速度选项
+
+- **Persistent settings / 设置持久化** — All values stored via PlayerPrefs, applied on every startup
+  全部通过 PlayerPrefs 持久化，启动时自动还原
+
+- **FPS Counter / 帧率显示** — Top-right rolling 0.5s average; toggleable in pause menu
+  右上角 0.5 秒滚动平均帧率，可在暂停菜单中开关
 
 ---
 
@@ -106,15 +176,22 @@ Assets/
       Camera/          # TacticalCamera / 战术相机
       UI/              # HUD, ActionBar, CombatLog, etc. / 界面组件
       Exploration/     # ExplorationController, PartyFollower / 探索控制、队伍跟随
+      Office/          # OfficeBootstrap, CutsceneController, OfficeInteractable / 办公室场景与过场动画
       Items/           # Inventory, Equipment (placeholder) / 背包、装备（预留）
     Data/              # ScriptableObject assets / 数据资产
       Units/           # UnitDefinition SOs (Mage, Archer, Rogue, enemies)
       Abilities/       # AbilityDefinition SOs (attacks, spells, heals)
+      Audio/           # CombatAudioConfig, ExplorationAudioConfig
       Encounters/      # EncounterDefinition SOs
     Scenes/
-      Combat/          # Combat_RuinsPrototype_01.unity
+      Office/          # Office_01.unity (start scene + cutscenes)
+      Combat/          # Combat_RuinsPrototype_01.unity (hex grid combat)
+    Art/
+      Cutscenes/       # frame3 dungeon + frameE ending images
+      Materials/       # NightBackdrop_Black.mat, etc.
     Prefabs/           # Unit prefabs, VFX prefabs / 单位预制体、特效预制体
     Audio/             # SFX clips and audio mixer / 音效和混音器
+  Cutscene/            # frame1 opening + frame2 sleep images
   ThirdParty/          # Third-party asset packs (Synty) / 第三方资源包
 ```
 
@@ -169,17 +246,21 @@ The project follows a **Three-Layer Rule** for clean separation of concerns:
    - Ensure Unity version **6000.3.6f1** is installed
      确保安装了对应的 Unity 版本
 
-3. **Open the scene / 打开场景**
-   - Navigate to `Assets/_Project/Scenes/Combat/Combat_RuinsPrototype_01.unity`
-     导航至对应场景文件
+3. **Open the start scene / 打开起始场景**
+   - Open `Assets/_Project/Scenes/Office/Office_01.unity`
+     打开 Office_01 场景文件
    - Press Play in the Unity Editor
      在编辑器中按下 Play
 
-4. **Game starts in Exploration Mode / 游戏以探索模式启动**
-   - Right-click to move your party
-     右键点击移动队伍
-   - Approach enemies to trigger combat
-     接近敌人触发战斗
+4. **Full game loop / 完整游戏流程**
+   - Opening cutscene plays automatically (5 frames, left-click to advance)
+     开场动画自动播放（5 帧，左键继续）
+   - Walk around the office with WASD; approach the desk and press **E** to trigger the sleep cutscene
+     WASD 在办公室探索，靠近办公桌按 **E** 触发睡前动画
+   - After the dungeon cutscene, you enter combat (exploration → encounter → grid combat)
+     地牢动画结束后进入战斗（探索 → 遭遇 → 网格战斗）
+   - Win the final battle to see the victory cutscene and credits
+     战胜最终战斗后观看胜利动画与片尾
 
 > **Note / 注意**: Third-party asset packs (Synty) are required but not included in the repository due to licensing. See [Asset Packs](#asset-packs--资源包) section.
 > 第三方资源包（Synty）因许可限制未包含在仓库中，详见资源包章节。
@@ -188,6 +269,15 @@ The project follows a **Three-Layer Rule** for clean separation of concerns:
 
 ## Controls / 操控方式
 
+### Office Mode / 办公室模式
+
+| Input / 输入 | Action / 操作 |
+|---|---|
+| WASD | Walk / 走动 |
+| E | Interact with desk (trigger sleep cutscene) / 与办公桌互动（触发睡前动画） |
+| Left Click / 左键 | Advance cutscene frame / 推进动画帧 |
+| ESC | Pause menu / 暂停菜单 |
+
 ### Exploration Mode / 探索模式
 
 | Input / 输入 | Action / 操作 |
@@ -195,6 +285,7 @@ The project follows a **Three-Layer Rule** for clean separation of concerns:
 | Right Click / 右键 | Move party leader / 移动队长 |
 | Mouse Wheel / 鼠标滚轮 | Zoom camera / 缩放相机 |
 | WASD | Pan camera / 平移相机 |
+| ESC | Pause menu / 暂停菜单 |
 
 ### Combat Mode / 战斗模式
 
@@ -240,20 +331,24 @@ This project uses the following Synty Studios asset packs (purchased separately,
 |---|---|
 | POLYGON Dungeon Realms | Main combat arena environment / 主战斗场景环境 |
 | POLYGON Dungeon | Dungeon environment pieces / 地下城环境组件 |
+| POLYGON Office | Office_01 scene environment / 办公室场景环境 |
 | POLYGON Fantasy Rivals | Character models / 角色模型 |
 | POLYGON Knights | Knight armor and weapons / 骑士盔甲和武器 |
 | POLYGON Particle FX | Combat VFX / 战斗特效 |
 | Sidekick Characters | Modular humanoid characters / 模块化人形角色 |
 | Animation - Base Locomotion | Movement animations / 移动动画 |
 | Animation - Sword Combat | Combat animations / 战斗动画 |
+| Dark Fantasy HUD | Font assets (PirataOne, Grenze, MarkaziText, Texturina) / 字体资源 |
+| Big Fantasy RPG Music Bundle | Background music tracks / 背景音乐 |
+| Action RPG SFX | Combat sound effects / 战斗音效 |
 
 ---
 
 ## Development / 开发记录
 
-This project was developed across 13 iterative sessions. Full development history is documented in [`progress_report.md`](progress_report.md).
+This project was developed across 17 iterative sessions. Full development history is documented in [`progress_report.md`](progress_report.md).
 
-本项目经过 13 次迭代开发。完整开发历史记录在 [`progress_report.md`](progress_report.md) 中。
+本项目经过 17 次迭代开发。完整开发历史记录在 [`progress_report.md`](progress_report.md) 中。
 
 ### Key Milestones / 关键里程碑
 
@@ -265,6 +360,10 @@ This project was developed across 13 iterative sessions. Full development histor
 | 8-9 | Combat UI, damage popups, status effects / 战斗界面、伤害飘字、状态效果 |
 | 10-11 | Audio, combat log, hotkeys, UI polish / 音效、战斗日志、快捷键、界面打磨 |
 | 12-13 | Exploration mode, party system, minimap / 探索模式、队伍系统、小地图 |
+| 14 | Exploration audio, coursework report & video / 探索音效、课程报告与视频 |
+| 15 | ESC pause menu, FPS counter, game settings / ESC 暂停菜单、帧率显示、游戏设置 |
+| 16 | Office cutscene pipeline, async combat preload / 办公室过场动画、异步战斗场景预加载 |
+| 17 | Victory ending, credits, bilingual captions, hex grid gating / 胜利动画、片尾、双语字幕、网格门控 |
 
 ---
 
