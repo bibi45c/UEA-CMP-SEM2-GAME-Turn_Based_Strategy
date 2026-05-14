@@ -13,10 +13,10 @@ namespace TurnBasedTactics.Office
     /// Assign PlayerPrefab and PlayerSpawnPoint in Inspector.
     ///
     /// Flow:
-    ///   Normal load  → opening cutscene plays → player spawns, can explore
-    ///   Sleep trigger → TriggerSleepSequence() → sleep cutscene → combat scene
-    ///   Bad ending   → OfficeBootstrap.ReturnAsBadEnding = true before load
-    ///                  → bad ending cutscene plays, player hidden
+    ///   Normal load     → opening cutscene plays → player spawns, can explore
+    ///   Sleep trigger   → TriggerSleepSequence() → sleep cutscene → combat scene
+    ///   Victory ending  → OfficeBootstrap.ReturnAsVictoryEnding = true before load
+    ///                     → 7-frame victory cutscene plays → quit / exit play mode
     /// </summary>
     public class OfficeBootstrap : MonoBehaviour
     {
@@ -37,8 +37,12 @@ namespace TurnBasedTactics.Office
         [Header("Dungeon cutscene (plays after sleep, while combat scene preloads)")]
         [SerializeField] private CutsceneSlide[] _dungeonSlides;
 
-        /// <summary>Set to true from combat scene before loading office for bad ending.</summary>
-        public static bool ReturnAsBadEnding = false;
+        [Header("Victory cutscene (plays after final combat victory)")]
+        [SerializeField] private CutsceneSlide[] _victorySlides;
+        [SerializeField] private Font            _creditsFont;
+
+        /// <summary>Set to true from combat scene before loading office for the victory ending.</summary>
+        public static bool ReturnAsVictoryEnding = false;
 
         // ── Intro cutscene lines (replace with VideoClip later) ───────────
         private static readonly string[] IntroLines =
@@ -49,15 +53,6 @@ namespace TurnBasedTactics.Office
             "同事们都走了。\n只有你还坐在工位前，\n对着满屏报错发呆。",
             "能量饮料凉透了。\n眼皮越来越重……\n\n键盘上，你睡了过去。",
             "屏幕突然亮起一行字：\n\n\nWARNING: Developer has entered\nthe runtime environment."
-        };
-
-        // ── Bad ending lines ──────────────────────────────────────────────
-        private static readonly string[] BadEndingLines =
-        {
-            "你没能回来。",
-            "同事们以为你只是请假了。\n工位上的咖啡杯还没人收走。",
-            "屏幕上最后一条 commit 记录：\n\nfix: developer.exe  —  FAILED",
-            "\n[ GAME OVER ]"
         };
 
         // ── Unity lifecycle ───────────────────────────────────────────────
@@ -74,10 +69,10 @@ namespace TurnBasedTactics.Office
 
         private void Start()
         {
-            if (ReturnAsBadEnding)
+            if (ReturnAsVictoryEnding)
             {
-                ReturnAsBadEnding = false;
-                StartCoroutine(ShowBadEnding());
+                ReturnAsVictoryEnding = false;
+                StartCoroutine(PlayVictoryCutscene());
                 return;
             }
             StartCoroutine(PlayOpeningCutscene());
@@ -210,18 +205,163 @@ namespace TurnBasedTactics.Office
             }
         }
 
-        private IEnumerator ShowBadEnding()
+        // Plays the 7-frame victory cutscene after the player wins the final combat.
+        // Hides the office player so we don't see the protagonist spawned in the room,
+        // then quits to editor / desktop once the cutscene completes.
+        private IEnumerator PlayVictoryCutscene()
         {
             OfficePlayerController.Instance?.DisableInput();
             var player = GameObject.Find("OfficePlayer");
             if (player != null) player.SetActive(false);
 
-            yield return new WaitForSeconds(0.5f);
-            CutsceneController.Instance?.Play(BadEndingLines, () =>
+            yield return null; // let CutsceneController.Awake finish
+
+            if (_victorySlides != null && _victorySlides.Length > 0)
             {
-                // Stay on the empty office — player can close the game or restart
-                Debug.Log("[OfficeBootstrap] Bad ending complete.");
-            });
+                bool done = false;
+                CutsceneController.Instance?.PlaySlides(
+                    _victorySlides, () => done = true, keepBlackAfter: true);
+                yield return new WaitUntil(() => done);
+            }
+            else
+            {
+                Debug.LogWarning("[OfficeBootstrap] _victorySlides is empty; ending immediately.");
+            }
+
+            Debug.Log("[OfficeBootstrap] Victory ending complete.");
+            yield return StartCoroutine(ShowCreditsAndQuit());
+        }
+
+        // Final credits — "Made by Jiayu Jiang" in PirataOne, click to quit.
+        private IEnumerator ShowCreditsAndQuit()
+        {
+            // Build canvas above the cutscene canvas
+            var canvasGO = new GameObject("CreditsCanvas");
+            var canvas = canvasGO.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 600;
+
+            var scaler = canvasGO.AddComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+
+            // Black backdrop (re-asserts black on top of whatever the cutscene left)
+            var bgGO = new GameObject("Bg");
+            bgGO.transform.SetParent(canvasGO.transform, false);
+            var bg = bgGO.AddComponent<UnityEngine.UI.Image>();
+            bg.color = Color.black;
+            var bgRT = bgGO.GetComponent<RectTransform>();
+            bgRT.anchorMin = Vector2.zero;
+            bgRT.anchorMax = Vector2.one;
+            bgRT.offsetMin = bgRT.offsetMax = Vector2.zero;
+
+            // Use the assigned credits font, fallback to built-in
+            var creditsFont = _creditsFont != null
+                ? _creditsFont
+                : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // Credit title — centered
+            var titleGO = new GameObject("Credit");
+            titleGO.transform.SetParent(canvasGO.transform, false);
+            var title = titleGO.AddComponent<UnityEngine.UI.Text>();
+            title.font = creditsFont;
+            title.fontSize = 96;
+            title.alignment = TextAnchor.MiddleCenter;
+            title.color = new Color(0.85f, 0.68f, 0.18f, 0f); // gold, start transparent for fade-in
+            title.text = "Made by Jiayu Jiang";
+            var titleOutline = titleGO.AddComponent<UnityEngine.UI.Outline>();
+            titleOutline.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            titleOutline.effectDistance = new Vector2(2f, -2f);
+            var titleRT = titleGO.GetComponent<RectTransform>();
+            titleRT.anchorMin = new Vector2(0.5f, 0.5f);
+            titleRT.anchorMax = new Vector2(0.5f, 0.5f);
+            titleRT.pivot = new Vector2(0.5f, 0.5f);
+            titleRT.anchoredPosition = new Vector2(0f, 40f);
+            titleRT.sizeDelta = new Vector2(1400f, 160f);
+
+            // Subtitle — AI collaboration credit
+            var subGO = new GameObject("CreditSub");
+            subGO.transform.SetParent(canvasGO.transform, false);
+            var sub = subGO.AddComponent<UnityEngine.UI.Text>();
+            sub.font = creditsFont;
+            sub.fontSize = 36;
+            sub.alignment = TextAnchor.MiddleCenter;
+            sub.color = new Color(0.70f, 0.58f, 0.20f, 0f); // dimmer gold
+            sub.text = "In collaboration with Opus 4.7 & GPT 5.5";
+            var subOutline = subGO.AddComponent<UnityEngine.UI.Outline>();
+            subOutline.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            subOutline.effectDistance = new Vector2(1f, -1f);
+            var subRT = subGO.GetComponent<RectTransform>();
+            subRT.anchorMin = new Vector2(0.5f, 0.5f);
+            subRT.anchorMax = new Vector2(0.5f, 0.5f);
+            subRT.pivot = new Vector2(0.5f, 0.5f);
+            subRT.anchoredPosition = new Vector2(0f, -60f);
+            subRT.sizeDelta = new Vector2(1400f, 60f);
+
+            // Bottom-right hint
+            var hintGO = new GameObject("Hint");
+            hintGO.transform.SetParent(canvasGO.transform, false);
+            var hint = hintGO.AddComponent<UnityEngine.UI.Text>();
+            hint.font = creditsFont;
+            hint.fontSize = 24;
+            hint.alignment = TextAnchor.MiddleRight;
+            hint.color = new Color(0.7f, 0.7f, 0.7f, 0f);
+            hint.text = "Click to close  ✕";
+            var hintRT = hintGO.GetComponent<RectTransform>();
+            hintRT.anchorMin = new Vector2(1f, 0f);
+            hintRT.anchorMax = new Vector2(1f, 0f);
+            hintRT.pivot = new Vector2(1f, 0f);
+            hintRT.anchoredPosition = new Vector2(-30f, 28f);
+            hintRT.sizeDelta = new Vector2(260f, 36f);
+
+            // Fade in title (1.0s)
+            float t = 0f;
+            const float titleFade = 1.0f;
+            while (t < titleFade)
+            {
+                t += Time.unscaledDeltaTime;
+                float a = Mathf.Clamp01(t / titleFade);
+                title.color = new Color(0.85f, 0.68f, 0.18f, a);
+                yield return null;
+            }
+            title.color = new Color(0.85f, 0.68f, 0.18f, 1f);
+
+            // Brief pause, then fade in subtitle (0.7s)
+            yield return new WaitForSecondsRealtime(0.4f);
+            t = 0f;
+            const float subFade = 0.7f;
+            while (t < subFade)
+            {
+                t += Time.unscaledDeltaTime;
+                float a = Mathf.Clamp01(t / subFade);
+                sub.color = new Color(0.70f, 0.58f, 0.20f, a);
+                yield return null;
+            }
+            sub.color = new Color(0.70f, 0.58f, 0.20f, 1f);
+
+            // Hold a moment, then fade in hint
+            yield return new WaitForSecondsRealtime(0.6f);
+            t = 0f;
+            const float hintFade = 0.5f;
+            while (t < hintFade)
+            {
+                t += Time.unscaledDeltaTime;
+                float a = Mathf.Clamp01(t / hintFade);
+                hint.color = new Color(0.7f, 0.7f, 0.7f, a);
+                yield return null;
+            }
+            hint.color = new Color(0.7f, 0.7f, 0.7f, 1f);
+
+            // Wait for left click
+            yield return new WaitUntil(() =>
+                UnityEngine.InputSystem.Mouse.current != null &&
+                UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame);
+
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         private void SpawnPlayer()

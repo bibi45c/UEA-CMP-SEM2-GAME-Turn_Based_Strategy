@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TurnBasedTactics.Combat;
 using TurnBasedTactics.Core;
+using TurnBasedTactics.Office;
 using TurnBasedTactics.Units;
 
 namespace TurnBasedTactics.UI
@@ -99,7 +100,26 @@ namespace TurnBasedTactics.UI
         private void OnCombatEnded(CombatEndedEvent evt)
         {
             bool isVictory = evt.WinningTeamId == TurnManager.PlayerTeamId;
+
+            // Final-victory short-circuit: skip the VICTORY stats overlay and
+            // jump straight into the ending cutscene back in Office_01.
+            if (isVictory && !EncounterTracker.HasNextEncounter())
+            {
+                StartCoroutine(TransitionToVictoryEnding());
+                return;
+            }
+
             StartCoroutine(ShowResultsCoroutine(isVictory));
+        }
+
+        private IEnumerator TransitionToVictoryEnding()
+        {
+            // Brief pause so the killing-blow animation can finish on screen.
+            yield return new WaitForSeconds(1.5f);
+
+            Debug.Log("[CombatResultsScreen] Final victory — skipping results screen, loading ending.");
+            OfficeBootstrap.ReturnAsVictoryEnding = true;
+            SceneTransitionManager.Instance.TransitionToScene("Office_01");
         }
 
         private IEnumerator ShowResultsCoroutine(bool isVictory)
@@ -460,9 +480,10 @@ namespace TurnBasedTactics.UI
             }
             else
             {
-                // No more encounters — restart for now
-                Debug.Log("[CombatResultsScreen] No next encounter, restarting...");
-                SceneTransitionManager.Instance.RestartCurrentScene();
+                // Final encounter cleared → play victory ending in Office_01.
+                Debug.Log("[CombatResultsScreen] All encounters complete — loading victory ending.");
+                OfficeBootstrap.ReturnAsVictoryEnding = true;
+                SceneTransitionManager.Instance.TransitionToScene("Office_01");
             }
         }
 
