@@ -16,7 +16,7 @@ MonoBehaviour:
   CombatLoop: {fileID: 8300000, guid: 96f5b25eb01835f41b80cea4ee57ddd6, type: 3}
   VictoryMusic: {fileID: 8300000, guid: 06eb8f1727fb3bf4797bd4a4f66f56e3, type: 3}
   DefeatMusic: {fileID: 8300000, guid: edaacbeee431e7c488ec2a7ceb7d32dc, type: 3}
-  MusicVolume: 0.4
+  MusicVolume: 0.21000001
   MusicCrossfadeDuration: 1.5
   MeleeSwingClips:
   - {fileID: 8300000, guid: e4bd2b9f2efc0c544a777d132d35c973, type: 3}
@@ -76,5 +76,5 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 8293f465dfd675745b036b7a49223d5d, type: 3}
   - {fileID: 8300000, guid: df28e46aba59b4e4293743cb41cb476a, type: 3}
   - {fileID: 8300000, guid: 947c6ba1c54bf8343ab226cc6f38160d, type: 3}
-  SFXVolume: 0.7
+  SFXVolume: 0.15
   PitchVariation: 0.08

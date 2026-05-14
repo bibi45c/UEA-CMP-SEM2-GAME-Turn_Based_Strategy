@@ -20,6 +20,10 @@ namespace TurnBasedTactics.Combat
         private AudioSource _musicSourceB;
         private bool _musicAIsActive = true;
 
+        // Volume multipliers set by PauseMenuController sliders (0–1)
+        private float _bgmMultiplier = 1f;
+        private float _sfxMultiplier = 1f;
+
         // Pooled SFX sources for polyphony
         private const int SFXPoolSize = 8;
         private AudioSource[] _sfxPool;
@@ -139,9 +143,9 @@ namespace TurnBasedTactics.Combat
         private void PlayMusic(AudioClip clip, bool loop)
         {
             var active = _musicAIsActive ? _musicSourceA : _musicSourceB;
-            active.clip = clip;
-            active.loop = loop;
-            active.volume = _config.MusicVolume;
+            active.clip   = clip;
+            active.loop   = loop;
+            active.volume = _config.MusicVolume * _bgmMultiplier;
             active.Play();
         }
 
@@ -170,13 +174,13 @@ namespace TurnBasedTactics.Combat
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
                 outgoing.volume = Mathf.Lerp(startVolume, 0f, t);
-                incoming.volume = Mathf.Lerp(0f, _config.MusicVolume, t);
+                incoming.volume = Mathf.Lerp(0f, _config.MusicVolume * _bgmMultiplier, t);
                 yield return null;
             }
 
             outgoing.Stop();
             outgoing.volume = 0f;
-            incoming.volume = _config.MusicVolume;
+            incoming.volume = _config.MusicVolume * _bgmMultiplier;
         }
 
         private void FadeOutMusic()
@@ -283,6 +287,20 @@ namespace TurnBasedTactics.Combat
 
         // ── Public API (for UI buttons) ──────────────────────
 
+        /// <summary>Apply BGM/SFX volume multipliers from the settings menu (0–1).</summary>
+        public void ApplyVolume(float bgm, float sfx)
+        {
+            _bgmMultiplier = Mathf.Clamp01(bgm);
+            _sfxMultiplier = Mathf.Clamp01(sfx);
+
+            // Update active music source immediately
+            var active = _musicAIsActive ? _musicSourceA : _musicSourceB;
+            if (active != null && active.isPlaying && _config != null)
+                active.volume = _config.MusicVolume * _bgmMultiplier;
+
+            // Update SFX pool base volume (affects next play call)
+        }
+
         /// <summary>Play a UI confirm sound. Call from button onClick.</summary>
         public void PlayUIConfirm()
         {
@@ -297,9 +315,9 @@ namespace TurnBasedTactics.Combat
             var source = _sfxPool[_sfxPoolIndex];
             _sfxPoolIndex = (_sfxPoolIndex + 1) % SFXPoolSize;
 
-            source.clip = clip;
-            source.volume = _config.SFXVolume;
-            source.pitch = 1f + Random.Range(-_config.PitchVariation, _config.PitchVariation);
+            source.clip   = clip;
+            source.volume = _config.SFXVolume * _sfxMultiplier;
+            source.pitch  = 1f + Random.Range(-_config.PitchVariation, _config.PitchVariation);
             source.Play();
         }
 
