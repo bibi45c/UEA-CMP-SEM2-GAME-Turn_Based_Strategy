@@ -143,7 +143,7 @@ namespace TurnBasedTactics.Office
                 else
                     yield return null;
 
-                _promptText.text = "点击继续  ▶";
+                _promptText.text = "Click to continue  ▶";
                 yield return new WaitUntil(LeftClickThisFrame);
                 yield return null; // skip double-trigger
 
@@ -200,7 +200,7 @@ namespace TurnBasedTactics.Office
                     _bodyText.color  = Color.white;
                     _promptText.text = "";
                     yield return StartCoroutine(Typewrite(line));
-                    _promptText.text = "[ 按任意键继续 ]";
+                    _promptText.text = "[ Press any key to continue ]";
                     yield return new WaitUntil(AnyKeyThisFrame);
                     yield return null;
                 }
