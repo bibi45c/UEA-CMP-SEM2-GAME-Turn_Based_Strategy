@@ -246,42 +246,69 @@ namespace TurnBasedTactics.Combat
 
             _actionSystem.SpendAbilityAP(caster, _queuedAbility);
             _actionAnimating = true;
-            PlayActionAnimation(caster.UnitId);
 
-            // Publish appropriate events based on effect type
-            if (result.TotalDamage > 0)
+            // Wrap event publishing + death handling in try/catch so a subscriber
+            // exception can never leave `_actionAnimating` stuck at true. The
+            // post-action coroutine is always scheduled to release the flag.
+            try
             {
-                EventBus.Publish(new UnitDamagedEvent
-                {
-                    AttackerUnitId = caster.UnitId,
-                    TargetUnitId = target.UnitId,
-                    DamageAmount = result.TotalDamage,
-                    RemainingHP = target.CurrentHP,
-                    WasCritical = result.WasCritical,
-                    DidKill = result.DidKill,
-                    Element = _queuedAbility.Element
-                });
-                Debug.Log($"[CombatSceneController] {caster.Definition.UnitName} used {_queuedAbility.AbilityName} on {target.Definition.UnitName} for {result.TotalDamage} damage.");
-            }
+                PlayActionAnimation(caster.UnitId);
 
-            if (result.TotalHealing > 0)
+                if (result.TotalDamage > 0)
+                {
+                    // Isolate Publish so a throwing subscriber doesn't skip HandleUnitDeath below.
+                    try
+                    {
+                        EventBus.Publish(new UnitDamagedEvent
+                        {
+                            AttackerUnitId = caster.UnitId,
+                            TargetUnitId = target.UnitId,
+                            DamageAmount = result.TotalDamage,
+                            RemainingHP = target.CurrentHP,
+                            WasCritical = result.WasCritical,
+                            DidKill = result.DidKill,
+                            Element = _queuedAbility.Element
+                        });
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[CombatSceneController] UnitDamagedEvent subscriber threw: {ex}");
+                    }
+                    Debug.Log($"[CombatSceneController] {caster.Definition.UnitName} used {_queuedAbility.AbilityName} on {target.Definition.UnitName} for {result.TotalDamage} damage.");
+                }
+
+                if (result.TotalHealing > 0)
+                {
+                    try
+                    {
+                        EventBus.Publish(new UnitHealedEvent
+                        {
+                            SourceUnitId = caster.UnitId,
+                            TargetUnitId = target.UnitId,
+                            HealAmount = result.TotalHealing,
+                            CurrentHP = target.CurrentHP
+                        });
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[CombatSceneController] UnitHealedEvent subscriber threw: {ex}");
+                    }
+                    Debug.Log($"[CombatSceneController] {caster.Definition.UnitName} used {_queuedAbility.AbilityName} on {target.Definition.UnitName} for {result.TotalHealing} healing.");
+                }
+
+                ClearQueuedAction();
+
+                if (result.DidKill)
+                    HandleUnitDeath(target);
+            }
+            catch (System.Exception ex)
             {
-                EventBus.Publish(new UnitHealedEvent
-                {
-                    SourceUnitId = caster.UnitId,
-                    TargetUnitId = target.UnitId,
-                    HealAmount = result.TotalHealing,
-                    CurrentHP = target.CurrentHP
-                });
-                Debug.Log($"[CombatSceneController] {caster.Definition.UnitName} used {_queuedAbility.AbilityName} on {target.Definition.UnitName} for {result.TotalHealing} healing.");
+                Debug.LogException(ex);
             }
-
-            ClearQueuedAction();
-
-            if (result.DidKill)
-                HandleUnitDeath(target);
-
-            StartCoroutine(WaitThenProcessPostAction(caster));
+            finally
+            {
+                StartCoroutine(WaitThenProcessPostAction(caster));
+            }
         }
 
         private void PlayActionAnimation(int unitId)

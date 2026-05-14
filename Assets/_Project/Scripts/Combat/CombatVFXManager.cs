@@ -129,14 +129,21 @@ namespace TurnBasedTactics.Combat
             );
             colorOverLifetime.color = gradient;
 
-            // Material — Particles/Standard Unlit works in Built-in RP
+            // Material — Particles/Standard Unlit works in Built-in RP.
+            // In builds the shader can be stripped if not in Always-Included list,
+            // so we fall back to Sprites/Default (always shipped) when it's null.
             var psr = go.GetComponent<ParticleSystemRenderer>();
             if (psr != null)
             {
-                var mat = new Material(Shader.Find("Particles/Standard Unlit"));
-                mat.SetFloat("_Mode", 1f); // Additive
-                mat.color = color;
-                psr.material = mat;
+                var shader = Shader.Find("Particles/Standard Unlit")
+                          ?? Shader.Find("Sprites/Default");
+                if (shader != null)
+                {
+                    var mat = new Material(shader);
+                    if (mat.HasProperty("_Mode")) mat.SetFloat("_Mode", 1f); // Additive
+                    mat.color = color;
+                    psr.material = mat;
+                }
             }
 
             ps.Play();
@@ -191,14 +198,19 @@ namespace TurnBasedTactics.Combat
             );
             colorOverLifetime.color = gradient;
 
-            // Material
+            // Material — fallback chain in case the unlit shader is stripped in builds.
             var psr = go.GetComponent<ParticleSystemRenderer>();
             if (psr != null)
             {
-                var mat = new Material(Shader.Find("Particles/Standard Unlit"));
-                mat.SetFloat("_Mode", 1f); // Additive
-                mat.color = _config.HealPrimaryColor;
-                psr.material = mat;
+                var shader = Shader.Find("Particles/Standard Unlit")
+                          ?? Shader.Find("Sprites/Default");
+                if (shader != null)
+                {
+                    var mat = new Material(shader);
+                    if (mat.HasProperty("_Mode")) mat.SetFloat("_Mode", 1f); // Additive
+                    mat.color = _config.HealPrimaryColor;
+                    psr.material = mat;
+                }
             }
 
             ps.Play();
