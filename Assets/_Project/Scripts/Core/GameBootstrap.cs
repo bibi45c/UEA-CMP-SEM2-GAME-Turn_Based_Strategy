@@ -328,7 +328,24 @@ namespace TurnBasedTactics.Core
             InitializeUnits();
             InitializeCombat();
 
-            // 6. Reset camera zoom from exploration (5) to combat (12)
+            // 6. Reveal the hex overlay + cover markers + movement range overlay
+            //    now that combat has started.
+            var gridMapForReveal = _gridRoot != null ? _gridRoot.GetComponentInChildren<HexGridMap>() : null;
+            if (gridMapForReveal != null)
+            {
+                var visualizer = gridMapForReveal.GetComponent<HexGridVisualizer>();
+                if (visualizer != null)
+                {
+                    visualizer.enabled  = true;
+                    visualizer.ShowGrid = true;
+                }
+                var coverVis = gridMapForReveal.GetComponent<CoverVisualizer>();
+                if (coverVis != null) coverVis.enabled = true;
+                var moveRangeVis = gridMapForReveal.GetComponent<MovementRangeVisualizer>();
+                if (moveRangeVis != null) moveRangeVis.enabled = true;
+            }
+
+            // 7. Reset camera zoom from exploration (5) to combat (12)
             var camera = _cameraRoot != null ? _cameraRoot.GetComponentInChildren<TacticalCam>() : null;
             if (camera != null)
                 camera.SetZoom(12f, instant: false);
@@ -362,14 +379,26 @@ namespace TurnBasedTactics.Core
             if (visualizer != null)
             {
                 visualizer.BuildCache();
+                // Hide the hex overlay while the player is exploring. TransitionToCombat
+                // re-enables it when an encounter begins. Disable both ShowGrid and the
+                // component itself so OnRenderObject never fires during exploration.
+                visualizer.ShowGrid = !_startInExploration;
+                visualizer.enabled  = !_startInExploration;
                 Debug.Log("[GameBootstrap] HexGridVisualizer cache built.");
             }
+
+            // Also hide the per-unit movement range overlay during exploration.
+            var moveRangeVis = gridMap.GetComponent<MovementRangeVisualizer>();
+            if (moveRangeVis != null)
+                moveRangeVis.enabled = !_startInExploration;
 
             // Cover visual indicators
             var coverVis = gridMap.GetComponent<CoverVisualizer>();
             if (coverVis == null)
                 coverVis = gridMap.gameObject.AddComponent<CoverVisualizer>();
             coverVis.Initialize(gridMap);
+            // Hide cover markers during exploration too.
+            coverVis.enabled = !_startInExploration;
             Debug.Log("[GameBootstrap] CoverVisualizer initialized.");
 
             Debug.Log($"[GameBootstrap] Grid initialized: {gridMap.CellCount} cells.");

@@ -46,7 +46,16 @@ namespace TurnBasedTactics.Office
         {
             Instance = this;
             BuildCanvas();
-            _canvas.enabled = false;
+            // Keep canvas active from frame 0 with only the opaque black backdrop
+            // visible, so the underlying scene never flashes before a cutscene
+            // starts (e.g. opening cutscene plays from Start, one frame later).
+            _canvas.enabled      = true;
+            _slideImage.enabled  = false;
+            _captionBar.enabled  = false;
+            _captionText.enabled = false;
+            _bodyText.enabled    = false;
+            _promptText.enabled  = false;
+            ResetCanvasAlpha();
         }
 
         // ── Public API ────────────────────────────────────────────────────

@@ -149,6 +149,10 @@ cinematic depth of field, no characters visible
 > 三年前，你加入了这家公司。
 > 做了三年程序。
 > 昨天，你的游戏终于上线了。
+>
+> *Three years ago, you joined the studio.*
+> *Three years as a programmer.*
+> *Yesterday, your game finally shipped.*
 
 ---
 
@@ -179,6 +183,9 @@ cyberpunk atmosphere, slow camera pull-back
 **台词**
 > 但现实没有给你掌声。
 > 只有凌晨 3:07 的休息室，还亮着灯。
+>
+> *But there was no applause waiting for you.*
+> *Only the break room at 3:07 AM was still lit.*
 
 ---
 
@@ -207,6 +214,9 @@ neon cyan rim light, cyberpunk color palette, cinematic close shot
 **台词**
 > 泡面已经凉了。
 > 工位上的报错，还在等你回去。
+>
+> *The instant noodles have gone cold.*
+> *The errors at your desk are still waiting.*
 
 ---
 
@@ -234,6 +244,9 @@ silhouette effect, low poly stylized art, cyberpunk office at night
 **台词**
 > 你把椅子推开。
 > 再撑一下，就能把它修完。
+>
+> *You push the chair back.*
+> *Just a little longer. You can fix this.*
 
 ---
 
@@ -260,6 +273,9 @@ low poly stylized art, cyberpunk night atmosphere, cinematic wide angle
 **台词**
 > 你走回工位。
 > 这可能是最后一次提交。
+>
+> *You head back to your desk.*
+> *This might be your last commit.*
 
 ---
 
@@ -314,6 +330,9 @@ cyberpunk office at night, cinematic establishing shot
 **台词**
 > 三块屏幕还亮着。
 > 它们比你更清醒。
+>
+> *Three monitors still glowing.*
+> *They're more awake than you are.*
 
 ---
 
@@ -346,6 +365,9 @@ cyberpunk color grading, harsh red glow
 **台词**
 > 发布页面上，全是红色。
 > 1,243 条评价，14% 好评。
+>
+> *The store page is bleeding red.*
+> *1,243 reviews. 14% positive.*
 
 ---
 
@@ -379,6 +401,9 @@ shoulder in foreground bokeh, low poly stylized art, cyberpunk aesthetic
 **台词**
 > 代码没有回你。
 > 只有红线一条接一条亮起来。
+>
+> *The code gives you nothing back.*
+> *Only red squiggles, one after another.*
 
 ---
 
@@ -415,6 +440,9 @@ low poly stylized art, cyberpunk aesthetic
 **台词**
 > Unity 控制台还在刷错。
 > 像是在替你的游戏求救。
+>
+> *Unity's console keeps screaming.*
+> *Like your game is calling for help.*
 
 ---
 
@@ -444,6 +472,9 @@ low poly stylized 3D, cyberpunk, cinematic emotional close-up
 **台词**
 > 能量饮料见底了。
 > 你揉了揉眼睛，还是看不清下一行。
+>
+> *The energy drink is empty.*
+> *You rub your eyes — still can't focus on the next line.*
 
 ---
 
@@ -473,6 +504,9 @@ eerie quiet moment, cinematic overhead composition
 **台词**
 > 你告诉自己——
 > 只闭上眼，五分钟。
+>
+> *You tell yourself —*
+> *Just close your eyes. Five minutes.*
 
 ---
 
@@ -507,6 +541,9 @@ silhouette in foreground
 **台词**
 > 错误还在滚动。
 > 一行，又一行。然后，三块屏幕同时停住。
+>
+> *The errors keep scrolling.*
+> *Line after line. Then — all three screens freeze.*
 
 ---
 
@@ -575,6 +612,9 @@ the dive, low poly stylized 3D, cyberpunk, cinematic dramatic shot
 **台词**
 > 你感到一阵眩晕。
 > 远处传来火焰燃烧声。
+>
+> *A wave of dizziness hits you.*
+> *Somewhere, flames are crackling.*
 
 ---
 
@@ -613,6 +653,8 @@ grid lines on the floor, no UI, no subtitles, no watermark
 
 **台词**
 > 冰冷的石板贴着你的脸。
+>
+> *Cold stone presses against your cheek.*
 
 ---
 
@@ -651,6 +693,8 @@ objects
 
 **台词**
 > 这不是你的手。
+>
+> *These aren't your hands.*
 
 ---
 
@@ -685,6 +729,8 @@ no office objects
 
 **台词**
 > 远处的地牢慢慢清晰起来。
+>
+> *The dungeon ahead slowly comes into focus.*
 
 ---
 
@@ -717,6 +763,8 @@ style, no red debug grid lines on the floor, no UI, no subtitles, no watermark
 
 **台词**
 > 你下意识地捡起了旁边的法杖。
+>
+> *You instinctively pick up the staff beside you.*
 
 ---
 
@@ -753,6 +801,10 @@ no watermark, no office objects
 > 这地方……有点熟悉。
 > 不对。
 > 这不就是你做的游戏吗？
+>
+> *This place... feels familiar.*
+> *Wait.*
+> *Isn't this the game you made?*
 
 ---
 
@@ -777,6 +829,10 @@ no watermark, no office objects
 > [ 系统提示 ]
 > 你已进入 Runtime Environment。
 > 找到出口，或在这里永远留下。
+>
+> *[ SYSTEM ]*
+> *You have entered the Runtime Environment.*
+> *Find the exit, or stay here forever.*
 
 ---
 
@@ -829,7 +885,11 @@ no debug grid lines.
 ```
 
 **台词**
-> 最后一行错误，终于停了。
+> 随着 Boss 被击败，红色错误裂纹从地面、空中和敌人身体上剥落。
+> 最后一行 Bug，终于停了。
+>
+> *As the Boss falls, red error cracks break away from the floor, the air, and its body.*
+> *The final error line goes still.*
 
 ---
 
@@ -862,6 +922,9 @@ no watermark, no debug grid lines.
 **台词**
 > 你举起法杖。
 > 它不像武器，更像一个断点。
+>
+> *You raise the staff.*
+> *Not a weapon. More like a breakpoint.*
 
 ---
 
@@ -882,6 +945,8 @@ no watermark, no debug grid lines.
 
 **台词**
 > 世界开始重新编译。
+>
+> *The world begins to recompile.*
 
 ---
 
@@ -913,6 +978,9 @@ no UI overlays, no subtitles, no watermark.
 **台词**
 > 你从键盘上抬起头。
 > 指尖还记得法杖的重量。
+>
+> *You lift your head from the keyboard.*
+> *Your fingertips still remember the staff's weight.*
 
 ---
 
@@ -943,6 +1011,10 @@ watermark.
 > 没有红字。
 > 没有崩溃。
 > 只有一个绿色的成功提示。
+>
+> *No red text.*
+> *No crashes.*
+> *Just a single green success message.*
 
 ---
 
@@ -977,6 +1049,9 @@ window, cinematic quiet ending, no Unity editor overlays, no watermark.
 **台词**
 > 早上 8:57。
 > 修复版本上传完成。
+>
+> *8:57 AM.*
+> *Hotfix uploaded.*
 
 ---
 
@@ -1008,6 +1083,9 @@ subtitles, no watermark, no extra characters.
 **台词**
 > 你以为自己回来了。
 > 但游戏，似乎还没有完全结束。
+>
+> *You think you're back.*
+> *But the game... isn't finished with you yet.*
 
 ---
 
