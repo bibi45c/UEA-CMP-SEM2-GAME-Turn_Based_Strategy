@@ -17,6 +17,8 @@ namespace TurnBasedTactics.Exploration
         private AudioSource _musicSourceB;
         private bool _musicAIsActive = true;
 
+        private float _bgmMultiplier = 1f;
+
         private Coroutine _fadeCoroutine;
         private bool _isPlaying;
 
@@ -77,9 +79,9 @@ namespace TurnBasedTactics.Exploration
 
         private void PlayClip(AudioSource source, AudioClip clip, bool loop)
         {
-            source.clip = clip;
-            source.loop = loop;
-            source.volume = _config.MusicVolume;
+            source.clip   = clip;
+            source.loop   = loop;
+            source.volume = _config.MusicVolume * _bgmMultiplier;
             source.Play();
         }
 
@@ -108,13 +110,22 @@ namespace TurnBasedTactics.Exploration
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
                 outgoing.volume = Mathf.Lerp(startVol, 0f, t);
-                incoming.volume = Mathf.Lerp(0f, _config.MusicVolume, t);
+                incoming.volume = Mathf.Lerp(0f, _config.MusicVolume * _bgmMultiplier, t);
                 yield return null;
             }
 
             outgoing.Stop();
             outgoing.volume = 0f;
-            incoming.volume = _config.MusicVolume;
+            incoming.volume = _config.MusicVolume * _bgmMultiplier;
+        }
+
+        /// <summary>Apply BGM volume multiplier from the settings menu (0–1).</summary>
+        public void ApplyVolume(float bgm, float sfx)
+        {
+            _bgmMultiplier = Mathf.Clamp01(bgm);
+            var active = _musicAIsActive ? _musicSourceA : _musicSourceB;
+            if (active != null && active.isPlaying && _config != null)
+                active.volume = _config.MusicVolume * _bgmMultiplier;
         }
 
         /// <summary>
