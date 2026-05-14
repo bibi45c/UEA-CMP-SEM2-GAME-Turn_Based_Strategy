@@ -16,8 +16,6 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ## Story / 背景故事
 
-**《Deadline》 / 《最后期限》**
-
 > 2:59 AM. A game studio, development department.
 > 凌晨 2:59。某游戏公司，开发部。
 

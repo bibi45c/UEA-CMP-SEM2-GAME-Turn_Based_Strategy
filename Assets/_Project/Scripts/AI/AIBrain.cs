@@ -240,54 +240,74 @@ namespace TurnBasedTactics.AI
 
         private void ExecuteAttack(UnitRuntime attacker, UnitRuntime target, AbilityDefinition ability)
         {
-            var result = _abilityExecutor.Execute(ability, attacker, target, _gridMap, _registry);
-            if (!result.Success)
+            // Wrap in try/catch so an exception from an event subscriber (audio,
+            // VFX, UI, etc.) doesn't kill the AI coroutine — that would leave
+            // _isExecuting stuck at true and freeze combat. Most common in builds
+            // where a subscriber hits a null reference that the Editor tolerated.
+            try
             {
-                Debug.LogWarning($"[AIBrain] {ability.AbilityName} failed: {result.FailureReason}");
-                return;
-            }
-
-            _actionSystem.SpendAbilityAP(attacker, ability);
-
-            // Play attack animation
-            UnitBrain brain = _spawner.GetBrain(attacker.UnitId);
-            if (brain != null)
-            {
-                var visual = brain.GetComponent<UnitVisual>();
-                if (visual != null)
+                var result = _abilityExecutor.Execute(ability, attacker, target, _gridMap, _registry);
+                if (!result.Success)
                 {
-                    // Face the target before attacking
-                    Vector3 targetPos = _gridMap.GetCellWorldPosition(target.GridPosition);
-                    Vector3 dir = targetPos - brain.transform.position;
-                    dir.y = 0f;
-                    if (dir.sqrMagnitude > 0.001f)
-                        brain.transform.rotation = Quaternion.LookRotation(dir);
+                    Debug.LogWarning($"[AIBrain] {ability.AbilityName} failed: {result.FailureReason}");
+                    return;
+                }
 
-                    visual.PlayActionAnimation();
+                _actionSystem.SpendAbilityAP(attacker, ability);
+
+                // Play attack animation
+                UnitBrain brain = _spawner.GetBrain(attacker.UnitId);
+                if (brain != null)
+                {
+                    var visual = brain.GetComponent<UnitVisual>();
+                    if (visual != null)
+                    {
+                        // Face the target before attacking
+                        Vector3 targetPos = _gridMap.GetCellWorldPosition(target.GridPosition);
+                        Vector3 dir = targetPos - brain.transform.position;
+                        dir.y = 0f;
+                        if (dir.sqrMagnitude > 0.001f)
+                            brain.transform.rotation = Quaternion.LookRotation(dir);
+
+                        visual.PlayActionAnimation();
+                    }
+                }
+
+                if (result.TotalDamage > 0)
+                {
+                    // Wrap Publish so a throwing subscriber (e.g. VFX with a missing
+                    // shader in build) doesn't skip the HandleUnitDeath below.
+                    try
+                    {
+                        EventBus.Publish(new UnitDamagedEvent
+                        {
+                            AttackerUnitId = attacker.UnitId,
+                            TargetUnitId = target.UnitId,
+                            DamageAmount = result.TotalDamage,
+                            RemainingHP = target.CurrentHP,
+                            WasCritical = result.WasCritical,
+                            DidKill = result.DidKill,
+                            Element = ability.Element
+                        });
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"[AIBrain] UnitDamagedEvent subscriber threw: {ex}");
+                    }
+
+                    Debug.Log($"[AIBrain] {attacker.Definition.UnitName} uses {ability.AbilityName} on {target.Definition.UnitName} " +
+                              $"for {result.TotalDamage} damage{(result.WasCritical ? " (CRIT!)" : "")}");
+                }
+
+                if (result.DidKill)
+                {
+                    Debug.Log($"[AIBrain] {target.Definition.UnitName} has been killed!");
+                    HandleUnitDeath(target);
                 }
             }
-
-            if (result.TotalDamage > 0)
+            catch (System.Exception ex)
             {
-                EventBus.Publish(new UnitDamagedEvent
-                {
-                    AttackerUnitId = attacker.UnitId,
-                    TargetUnitId = target.UnitId,
-                    DamageAmount = result.TotalDamage,
-                    RemainingHP = target.CurrentHP,
-                    WasCritical = result.WasCritical,
-                    DidKill = result.DidKill,
-                    Element = ability.Element
-                });
-
-                Debug.Log($"[AIBrain] {attacker.Definition.UnitName} uses {ability.AbilityName} on {target.Definition.UnitName} " +
-                          $"for {result.TotalDamage} damage{(result.WasCritical ? " (CRIT!)" : "")}");
-            }
-
-            if (result.DidKill)
-            {
-                Debug.Log($"[AIBrain] {target.Definition.UnitName} has been killed!");
-                HandleUnitDeath(target);
+                Debug.LogError($"[AIBrain] Exception during ExecuteAttack ({ability?.AbilityName}): {ex}");
             }
         }
 
