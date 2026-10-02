@@ -99,16 +99,9 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
 
-
-# Large asset packs (keep local, too large for Git)
-Assets/ThirdParty/Audio/
-Assets/ThirdParty/Audio.meta
-Assets/ThirdParty/HUD/
-Assets/ThirdParty/HUD.meta
-Assets/ThirdParty/Icon/
-Assets/ThirdParty/Icon.meta
-Assets/ThirdParty/Materials/
-Assets/ThirdParty/Materials.meta
+# Third-party asset packs (licensed, import locally; not redistributed)
+Assets/ThirdParty/
+Assets/ThirdParty.meta
 Assets/Synty/
 Assets/Synty.meta
 Assets/Screenshots/
@@ -120,4 +113,6 @@ Assets/Scripts.meta
 # Windows artifacts
 NUL
 
-/.claude
+# Local agent settings (shared slash commands stay tracked)
+/.claude/*
+!/.claude/commands/

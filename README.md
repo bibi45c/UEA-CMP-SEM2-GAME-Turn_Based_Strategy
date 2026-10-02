@@ -333,6 +333,10 @@ This project uses the following Synty Studios asset packs (purchased separately,
 
 本项目使用以下 Synty Studios 资源包（需单独购买，未包含在仓库中）：
 
+Import each pack into `Assets/ThirdParty/` keeping its original folder name (e.g. `Assets/ThirdParty/PolygonDungeonRealms/`) so scene and prefab references resolve.
+
+请将各资源包导入到 `Assets/ThirdParty/` 下并保持原始文件夹名（如 `Assets/ThirdParty/PolygonDungeonRealms/`），以便场景和预制体引用正确解析。
+
 | Pack / 资源包 | Purpose / 用途 |
 |---|---|
 | POLYGON Dungeon Realms | Main combat arena environment / 主战斗场景环境 |
