@@ -348,9 +348,9 @@ This project was developed across 17 iterative sessions. Full development histor
 
 本项目经过 17 次迭代开发。完整开发历史记录在 [`progress_report.md`](progress_report.md) 中。
 
-The AI-agent workflow behind these sessions (session timeline, skills / MCP usage, prompts and lessons learned) is documented in [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md).
+The AI-agent workflow behind these sessions (session timeline, skills / MCP usage and lessons learned) is documented in [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md).
 
-与 AI Agent 协作的工作流（Session 时间线、Skill / MCP 使用、Prompt 模板与踩坑经验）整理在 [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md)。
+与 AI Agent 协作的工作流（Session 时间线、Skill / MCP 使用与踩坑经验）整理在 [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md)。
 
 ### Key Milestones / 关键里程碑
 

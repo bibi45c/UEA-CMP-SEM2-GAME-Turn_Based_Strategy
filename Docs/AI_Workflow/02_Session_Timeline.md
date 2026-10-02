@@ -1,6 +1,6 @@
 # 02 · Session Timeline
 
-来源：`progress_report.md`、git 历史（`Co-Authored-By` 尾注）、本地 Claude Code / Codex 记录（详见 [06_Prompt_Log.md](06_Prompt_Log.md)）。
+来源：`progress_report.md`、git 历史（`Co-Authored-By` 尾注）、本地 Claude Code / Codex 记录（可用 [`tools/session_digest.py`](tools/session_digest.py) 重新提取）。
 
 图例：🟣 Claude Code　🟢 Codex　🔵 Antigravity　📄 只有 progress_report / git 可追溯（transcript 已过期）
 

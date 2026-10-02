@@ -31,7 +31,7 @@
 |---|---|
 | 开发周期 | 2026-02-23 → 2026-05-15（交付），之后文档/简历/架构图维护至 2026-10 |
 | 开发 Session（progress_report 编号） | 17 |
-| 可追溯的 agent 会话 | 16（Claude Code 9 · Codex 7），见 [06_Prompt_Log.md](06_Prompt_Log.md) |
+| 可追溯的 agent 会话 | 16（Claude Code 9 · Codex 7） |
 | 使用的 Agent / 模型 | Claude Opus 4.6 / 4.7、Sonnet 4.6、Opus 5.5；GPT-5.3-codex、GPT-5.5、GPT-5.6；Antigravity（早期目录重构） |
 | C# 脚本 | 88 个，11 个模块目录（含 Editor） |
 | Git 提交 / PR | 26 个非合并提交，13 个 PR 合入 main |
@@ -49,9 +49,7 @@
 | [02_Session_Timeline.md](02_Session_Timeline.md) | 全部 Session 时间线：阶段、使用的工具/模型、目标与产出 |
 | [03_Skills_MCP_Tools.md](03_Skills_MCP_Tools.md) | 用到的 Skill、Slash Command、MCP Server、Subagent 清单与使用统计 |
 | [04_Lessons_Learned.md](04_Lessons_Learned.md) | 踩坑记录与最佳实践（Unity MCP、上下文管理、构建差异、协作习惯） |
-| [05_Prompt_Library.md](05_Prompt_Library.md) | 可直接复用的 Prompt 模板（立项、交接、收尾、报告、复盘） |
-| [06_Prompt_Log.md](06_Prompt_Log.md) | 每个会话的用户提示词摘录（脚本生成、已脱敏） |
-| [tools/session_digest.py](tools/session_digest.py) | 从本地 Claude Code / Codex 记录重新生成 06 的脚本 |
+| [tools/session_digest.py](tools/session_digest.py) | 从本地 Claude Code / Codex 记录提取会话摘要的脚本 |
 
 相关的现有文件：
 
@@ -59,10 +57,10 @@
 - [`AGENT_WORKFLOW.md`](../../AGENT_WORKFLOW.md) — Session 14 后整理的开发流程 prompt
 - [`.claude/commands/end-session.md`](../../.claude/commands/end-session.md) — 自定义 `/end-session` 收尾命令
 
-## 重新生成提示词日志 / Regenerate the Log
+## 提取会话摘要 / Session Digest
 
 ```bash
-python Docs/AI_Workflow/tools/session_digest.py --match 6056B --out Docs/AI_Workflow/06_Prompt_Log.md
+python Docs/AI_Workflow/tools/session_digest.py --match 6056B --out prompt_log.md
 ```
 
-脚本读取 `~/.claude/projects/*<match>*/*.jsonl` 和 `~/.codex/sessions/**/rollout-*.jsonl`，按 cwd 过滤，输出截断后的提示词并去除图片、IP 和本机用户路径。
+输出仅供本地查阅，不入库。脚本读取 `~/.claude/projects/*<match>*/*.jsonl` 和 `~/.codex/sessions/**/rollout-*.jsonl`，按 cwd 过滤，输出截断后的提示词并去除图片、IP 和本机用户路径。

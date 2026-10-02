@@ -55,7 +55,7 @@
 
 ### 4.1 开场（Handoff Prompt）
 
-每个 session 用上一次 `/end-session` 生成的交接 prompt 开头（模板见 [05_Prompt_Library.md](05_Prompt_Library.md#2-session-开场交接-prompt)）。它包含：
+每个 session 用上一次 `/end-session` 生成的交接 prompt 开头（格式由 [`end-session.md`](../../.claude/commands/end-session.md) 定义）。它包含：
 
 1. 按顺序读取 `CLAUDE.md` → `progress_report.md`（最新一条）→ `GameOutline.md` →（专题文档）
 2. 上次完成了什么（2~4 条）
