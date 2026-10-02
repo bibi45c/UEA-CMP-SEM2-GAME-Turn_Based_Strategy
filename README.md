@@ -8,6 +8,14 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ---
 
+## Demo Video / 演示视频
+
+[![Hex Tactics Demo](https://img.youtube.com/vi/87E1Bj1nAJI/hqdefault.jpg)](https://youtu.be/87E1Bj1nAJI)
+
+▶ YouTube: <https://youtu.be/87E1Bj1nAJI>
+
+---
+
 ## Screenshots / 截图
 
 *Coming soon / 即将添加*
@@ -347,6 +355,10 @@ This project uses the following Synty Studios asset packs (purchased separately,
 This project was developed across 17 iterative sessions. Full development history is documented in [`progress_report.md`](progress_report.md).
 
 本项目经过 17 次迭代开发。完整开发历史记录在 [`progress_report.md`](progress_report.md) 中。
+
+The AI-agent workflow behind these sessions (session timeline, skills / MCP usage and lessons learned) is documented in [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md).
+
+与 AI Agent 协作的工作流（Session 时间线、Skill / MCP 使用与踩坑经验）整理在 [`Docs/AI_Workflow/`](Docs/AI_Workflow/README.md)。
 
 ### Key Milestones / 关键里程碑
 
