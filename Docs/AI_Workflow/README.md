@@ -4,6 +4,8 @@
 
 本目录整理了 **Hex Tactics**（Unity 6 回合制战术 RPG）从立项到交付全过程中，与 AI Coding Agent（Claude Code、Codex 等）协作的会话记录、使用到的 Skill / MCP / 命令，以及沉淀下来的工作流和踩坑经验。目标是让后续项目（或新的 agent）可以直接复用这套流程。
 
+> 🎬 最终成品演示视频：<https://youtu.be/87E1Bj1nAJI>
+>
 > 项目本身的设计与架构请看根目录的 [`README.md`](../../README.md)、[`GameOutline.md`](../../GameOutline.md)、[`progress_report.md`](../../progress_report.md)。本目录只关注"怎么和 agent 一起把它做出来"。
 
 ---

@@ -8,6 +8,14 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ---
 
+## Demo Video / 演示视频
+
+[![Hex Tactics Demo](https://img.youtube.com/vi/87E1Bj1nAJI/hqdefault.jpg)](https://youtu.be/87E1Bj1nAJI)
+
+▶ YouTube: <https://youtu.be/87E1Bj1nAJI>
+
+---
+
 ## Screenshots / 截图
 
 *Coming soon / 即将添加*
