@@ -52,4 +52,5 @@
 - **Claude Code 本地 transcript 会被定期清理**（默认约 30 天），Session 3–14 的原始对话因此丢失。→ 重要项目应定期导出（本目录 `tools/session_digest.py`），或调大 `cleanupPeriodDays`。
 - **Codex 记录也可能"消失"**（05-20 事件），需要从备份恢复并注意中文编码。
 - 因为有 `progress_report.md` + 规范的 git 提交，即使聊天记录丢失，开发历史仍可完整重建 —— 这是"文档即上下文"最直接的回报。
-- 不要把作业 PDF、构建产物、录屏、聊天导出等提交进仓库：用 `.gitignore`（如 `Docs/Coursework/`）隔离，提交前检查 `git status`。
+- 不要把作业 PDF、构建产物、录屏、聊天导出等提交进仓库：统一放进一个本地目录，用不入库的 `.git/info/exclude` 忽略（公开的 `.gitignore` 会暴露文件名），提交前检查 `git status`。
+- 付费资源包（如 Synty）只在本地导入，不要提交进公开仓库；一旦进了历史，只删当前版本不够，需要改写历史。

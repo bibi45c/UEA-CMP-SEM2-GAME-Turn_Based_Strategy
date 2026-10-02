@@ -61,7 +61,7 @@
 
 | 日期 | 工具 | 内容 | 产出 |
 |---|---|---|---|
-| 05-20 | 🟢 GPT-5.5 | Codex 聊天记录丢失 → 从备份按项目导出 Markdown，编写恢复脚本，修复中文乱码 | `CodexChatExports_ByProject/`（本地，不入库） |
-| 08-17 | 🟢 GPT-5.6 | 整理项目技术点与 agent 参与边界，写简历描述 | `Docs/Resume_Project_Description.md`（本地，未入库） |
-| 09-14 | 🟢 GPT-5.6 + `archify` skill | 基于最新 main 生成可交互架构图 | `Docs/Architecture_Main_Archify.html`（本地，未入库） |
+| 05-20 | 🟢 GPT-5.5 | Codex 聊天记录丢失 → 从备份按项目导出 Markdown，编写恢复脚本，修复中文乱码 | 按项目导出的会话 Markdown（本地） |
+| 08-17 | 🟢 GPT-5.6 | 整理项目技术点与 agent 参与边界，写简历描述 | 简历用项目描述（本地） |
+| 09-14 | 🟢 GPT-5.6 + `archify` skill | 基于最新 main 生成可交互架构图 | 交互式架构图 HTML（本地） |
 | 10-02 | 🟣 Opus 5.5 | 汇总所有会话、skill 与工作流 | 本目录 `Docs/AI_Workflow/` |
