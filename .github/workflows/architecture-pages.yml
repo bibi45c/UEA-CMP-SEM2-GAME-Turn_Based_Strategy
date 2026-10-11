@@ -3,10 +3,10 @@ name: Architecture site
 on:
   push:
     branches: [main, 'feature/**']
-    paths: ['site/**', 'Docs/Architecture_*', 'scripts/check-architecture-site.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
+    paths: ['site/**', 'Docs/Architecture_*', 'Docs/Screenshots/**', 'scripts/*architecture*.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
   pull_request:
     branches: [main]
-    paths: ['site/**', 'Docs/Architecture_*', 'scripts/check-architecture-site.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
+    paths: ['site/**', 'Docs/Architecture_*', 'Docs/Screenshots/**', 'scripts/*architecture*.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,8 @@ jobs:
           node-version: '22'
       - name: Check artifact hashes, source evidence and README links
         run: node scripts/check-architecture-site.mjs
+      - name: Test Pages readiness decisions
+        run: node --test scripts/architecture-pages-readiness.test.mjs
       - name: Upload site for branch review
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -36,9 +38,30 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  deploy:
+  pages_readiness:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Check existing Pages settings without changing them
+        id: pages
+        run: node scripts/architecture-pages-readiness.mjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.pages_readiness.outputs.enabled == 'true'
+    needs: [validate, pages_readiness]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

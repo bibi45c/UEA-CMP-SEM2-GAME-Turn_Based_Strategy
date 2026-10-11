@@ -27,6 +27,8 @@ Optional Topics: `unity`, `csharp`, `tactical-rpg`, `hex-grid`, `turn-based`, `g
 
 Description and Website are repository metadata; merging a branch does not set them. This review branch leaves both unchanged until publication is verified.
 
+On main, a read-only readiness job checks the existing Pages configuration. When Pages returns 404 or still uses branch-based publishing, it records **Not published** in the workflow summary and skips deployment without changing settings. Other API/network errors fail the check. A successful validation run with a skipped deploy job does not establish a live website. Enable Pages separately and rerun the workflow before verifying the public URLs.
+
 Only `site/` is deployed, excluding Unity Assets, builds, third-party packs and local configuration. Official Actions are pinned to verified commits. Only the main deploy job receives Pages/OIDC write permissions.
 
 ## Update the diagram
