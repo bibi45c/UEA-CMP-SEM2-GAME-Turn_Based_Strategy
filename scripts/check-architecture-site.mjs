@@ -61,4 +61,10 @@ const readme = read('README.md').toString('utf8');
 assert.ok(readme.includes('Docs/Architecture_Preview.png'));
 assert.ok(readme.includes('site/index.html'));
 assert.ok(readme.includes('https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/'));
-console.log('Architecture site passed: verified hashes, ' + paths.size + ' source files, README links and self-contained HTML.');
+const screenshotPaths = new Set([...readme.matchAll(/Docs\/Screenshots\/[a-z0-9-]+\.png/g)].map((match) => match[0]));
+assert.ok(screenshotPaths.size > 0, 'README must include gameplay screenshots.');
+for (const screenshotPath of screenshotPaths) {
+  assert.equal(read(screenshotPath).subarray(0, 8).toString('hex'), '89504e470d0a1a0a', screenshotPath);
+}
+assert.ok(read('Docs/Screenshots/README.md').toString('utf8').includes('2026-03-04'));
+console.log('Architecture site passed: verified hashes, ' + paths.size + ' source files, ' + screenshotPaths.size + ' gameplay screenshots, README links and self-contained HTML.');

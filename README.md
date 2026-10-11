@@ -32,7 +32,15 @@ The public link becomes available after this branch is merged and GitHub Pages i
 
 ## Screenshots / 截图
 
-*Coming soon / 即将添加*
+| Party exploration / 队伍探索 | Ability targeting / 技能范围 |
+|---|---|
+| ![Party exploring the dungeon with party status and minimap](Docs/Screenshots/party-exploration.png) | ![Ability range highlighted on the hex grid with the combat HUD](Docs/Screenshots/ability-targeting.png) |
+| **Combat HUD / 战斗界面** | **Victory summary / 胜利结算** |
+| ![Attack damage feedback with turn order, action bar and combat log](Docs/Screenshots/combat-hud.png) | ![Victory screen showing rounds, defeated enemies and surviving party members](Docs/Screenshots/victory-summary.png) |
+
+Selected local gameplay captures from **2026-03-04**, shown without image edits. These are historical screenshots, not a fresh capture of the latest `main`; UI and party composition may differ. Click an image to view it at full size. [Screenshot provenance](Docs/Screenshots/README.md).
+
+精选自 **2026-03-04** 的本地游戏截图，保留原图；并非最新 `main` 的重新实拍，界面和队伍配置可能有所不同。点击图片可查看大图。
 
 ---
 
