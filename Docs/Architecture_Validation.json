@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "generator": "Archify 2.17.0-dev.1",
+  "diagram_type": "architecture",
+  "revision": "42f3a2b8d6bc3e4b847abec1f34cae841fda204d",
+  "specification": {
+    "sha256": "50399af2c49e4f3dc4ec6e08d8ea61bd63f36b28ceef986903f5f1be8775c950",
+    "bytes": 11057
+  },
+  "artifact": {
+    "sha256": "0c337d055885387bc23aaf8a6a513ffdea9cea3d26230c1606df3fcca26bf9f8",
+    "bytes": 820982
+  },
+  "preview": {
+    "path": "Docs/Architecture_Preview.png",
+    "sha256": "fce085493fad19250ee42a5f00c178c8bd3491062b4243730cc73daecb590f07"
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  },
+  "repository_evidence": {
+    "verified": true,
+    "references": 28
+  },
+  "browser_evidence": "passed",
+  "visual_review": "passed",
+  "correction_rounds": 1,
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1600,
+      1000
+    ],
+    [
+      1920,
+      1080
+    ],
+    [
+      2048,
+      1320
+    ]
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "visual_review_scope": "Reviewed light 1440x900 and dark 2048x1320 captures; automated containment and capture checks passed for both themes.",
+  "checked_on": "2026-10-11"
+}

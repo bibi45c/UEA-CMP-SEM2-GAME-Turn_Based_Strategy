@@ -6,6 +6,20 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 使用 Unity 6 开发的回合制战术 RPG 垂直切片，灵感来自《神界：原罪 2》和《博德之门 3》。具备六边形网格战斗、环境地表联动、队伍探索系统和数据驱动架构。
 
+## Interactive Architecture / 交互架构图
+
+Explore the runtime systems, shared combat rules, and source references in the Archify viewer.
+
+通过 Archify 查看运行时系统、共用战斗规则和对应源码。架构证据固定到 `main` 提交 `42f3a2b`。
+
+[![Hex Tactics runtime architecture](Docs/Architecture_Preview.png)](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/)
+
+[Open the published viewer / 打开在线交互图](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/) · [HTML for local review / 本地验收 HTML](site/index.html) · [Editable diagram / 可编辑图源](Docs/Architecture_Main_Archify.json)
+
+The public link becomes available after this branch is merged and GitHub Pages is enabled. During review, download the branch workflow's `architecture-site-preview` artifact or open `site/index.html` locally. See [publishing and update instructions](Docs/Architecture_Publishing.md).
+
+在线链接在分支合并并启用 Pages 后可用；验收期间可下载工作流中的 `architecture-site-preview` 网页包，或在本地打开 HTML。
+
 ---
 
 ## Demo Video / 演示视频

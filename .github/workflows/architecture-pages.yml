@@ -1,0 +1,64 @@
+name: Architecture site
+
+on:
+  push:
+    branches: [main, 'feature/**']
+    paths: ['site/**', 'Docs/Architecture_*', 'scripts/check-architecture-site.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
+  pull_request:
+    branches: [main]
+    paths: ['site/**', 'Docs/Architecture_*', 'scripts/check-architecture-site.mjs', '.github/workflows/architecture-pages.yml', 'README.md', 'Assets/_Project/Scripts/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Check artifact hashes, source evidence and README links
+        run: node scripts/check-architecture-site.mjs
+      - name: Upload site for branch review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: architecture-site-preview
+          path: |
+            site/index.html
+            site/ARCHIFY-LICENSE.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: architecture-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Configure Pages (enable GitHub Actions in repo settings first)
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Upload only the static site directory
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: site
+      - name: Deploy architecture viewer
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

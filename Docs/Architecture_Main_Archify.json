@@ -1,0 +1,475 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Hex Tactics — 运行时架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/bibi45c/UEA-CMP-SEM2-GAME-Turn_Based_Strategy",
+      "revision": "42f3a2b8d6bc3e4b847abec1f34cae841fda204d"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "输入与表现"
+        },
+        "backend": {
+          "label": "游戏系统"
+        },
+        "database": {
+          "label": "定义资产"
+        },
+        "messagebus": {
+          "label": "事件总线"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "combat-path",
+        "label": "玩家战斗链路",
+        "focus": [
+          "controls",
+          "combat",
+          "rules",
+          "events",
+          "presentation"
+        ],
+        "note": "控制器调用共享规则；回合与战斗事件驱动反馈。"
+      },
+      {
+        "id": "scene-phases",
+        "label": "探索与战斗切换",
+        "focus": [
+          "exploration",
+          "bootstrap",
+          "combat"
+        ],
+        "note": "探索遭遇回调 GameBootstrap，随后装配战斗系统。"
+      },
+      {
+        "id": "shared-rules",
+        "label": "数据与战术规则",
+        "focus": [
+          "definitions",
+          "ai",
+          "rules",
+          "grid",
+          "units"
+        ],
+        "note": "玩家与 AI 使用同一套 AP、技能、网格和单位状态。"
+      }
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [
+      44,
+      80
+    ],
+    "cols": 5,
+    "gapX": 90,
+    "gapY": 104,
+    "cellW": 170,
+    "cellH": 76
+  },
+  "components": [
+    {
+      "id": "controls",
+      "type": "frontend",
+      "label": "玩家输入与 HUD",
+      "sublabel": "选择、移动、技能、结束回合",
+      "row": 1,
+      "col": 0,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Units/TacticalInputHandler.cs",
+          "label": "战术输入",
+          "line": 10
+        },
+        {
+          "path": "Assets/_Project/Scripts/UI/ActionBar.cs",
+          "label": "行动栏",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "exploration",
+      "type": "backend",
+      "label": "探索阶段",
+      "sublabel": "自由移动、队伍跟随、遭遇",
+      "row": 0,
+      "col": 0,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Exploration/ExplorationController.cs",
+          "label": "遭遇检测",
+          "line": 111
+        },
+        {
+          "path": "Assets/_Project/Scripts/Exploration/PartyFollower.cs",
+          "label": "队伍跟随"
+        }
+      ]
+    },
+    {
+      "id": "bootstrap",
+      "type": "backend",
+      "label": "GameBootstrap",
+      "sublabel": "场景入口、系统装配与切换",
+      "row": 0,
+      "col": 1,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Core/GameBootstrap.cs",
+          "label": "场景装配",
+          "line": 28
+        },
+        {
+          "path": "Assets/_Project/Scripts/Core/GameSession.cs",
+          "label": "会话状态"
+        }
+      ]
+    },
+    {
+      "id": "combat",
+      "type": "backend",
+      "label": "CombatSceneController",
+      "sublabel": "战斗生命周期与服务编排",
+      "row": 1,
+      "col": 1,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Combat/CombatSceneController.cs",
+          "label": "依赖装配",
+          "line": 69
+        },
+        {
+          "path": "Assets/_Project/Scripts/Combat/CombatSceneController.cs",
+          "label": "技能结果事件",
+          "line": 233
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "backend",
+      "label": "共享战斗服务",
+      "sublabel": "回合、AP、技能与效果结算",
+      "row": 1,
+      "col": 2,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Combat/TurnManager.cs",
+          "label": "回合规则",
+          "line": 18
+        },
+        {
+          "path": "Assets/_Project/Scripts/Combat/ActionSystem.cs",
+          "label": "AP 行动经济",
+          "line": 13
+        },
+        {
+          "path": "Assets/_Project/Scripts/Abilities/AbilityExecutor.cs",
+          "label": "技能执行",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "id": "definitions",
+      "type": "database",
+      "label": "ScriptableObject 定义",
+      "sublabel": "单位、技能、状态与地表",
+      "row": 0,
+      "col": 2,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Units/UnitDefinition.cs",
+          "label": "单位定义"
+        },
+        {
+          "path": "Assets/_Project/Scripts/Abilities/AbilityDefinition.cs",
+          "label": "技能定义"
+        },
+        {
+          "path": "Assets/_Project/Scripts/Grid/SurfaceDefinition.cs",
+          "label": "地表定义"
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "type": "backend",
+      "label": "敌方 AI",
+      "sublabel": "目标评分、移动与技能决策",
+      "row": 0,
+      "col": 3,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/AI/AIBrain.cs",
+          "label": "AI 执行",
+          "line": 17
+        },
+        {
+          "path": "Assets/_Project/Scripts/AI/AIScorer.cs",
+          "label": "目标评分",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "units",
+      "type": "backend",
+      "label": "单位运行时状态",
+      "sublabel": "属性、HP/AP、阵营与位置",
+      "row": 2,
+      "col": 2,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Units/UnitRuntime.cs",
+          "label": "单位状态",
+          "line": 11
+        },
+        {
+          "path": "Assets/_Project/Scripts/Units/UnitStats.cs",
+          "label": "属性聚合",
+          "line": 10
+        },
+        {
+          "path": "Assets/_Project/Scripts/Units/UnitRegistry.cs",
+          "label": "单位注册表",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "id": "grid",
+      "type": "backend",
+      "label": "六边形战术世界",
+      "sublabel": "网格、寻路、掩体与地表",
+      "row": 2,
+      "col": 1,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Grid/HexGridMap.cs",
+          "label": "网格数据",
+          "line": 11
+        },
+        {
+          "path": "Assets/_Project/Scripts/Grid/HexPathfinder.cs",
+          "label": "A* 寻路",
+          "line": 11
+        },
+        {
+          "path": "Assets/_Project/Scripts/Grid/SurfaceSystem.cs",
+          "label": "地表反应",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "EventBus",
+      "sublabel": "进程内同步事件分发",
+      "row": 1,
+      "col": 3,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/Core/EventBus.cs",
+          "label": "同步事件总线",
+          "line": 13
+        },
+        {
+          "path": "Assets/_Project/Scripts/Combat/CombatEvents.cs",
+          "label": "战斗事件"
+        },
+        {
+          "path": "Assets/_Project/Scripts/Units/UnitEvents.cs",
+          "label": "单位事件"
+        }
+      ]
+    },
+    {
+      "id": "presentation",
+      "type": "frontend",
+      "label": "表现与反馈层",
+      "sublabel": "战斗 UI、VFX、音频与相机",
+      "row": 1,
+      "col": 4,
+      "size": [
+        170,
+        70
+      ],
+      "sources": [
+        {
+          "path": "Assets/_Project/Scripts/UI/CombatUIManager.cs",
+          "label": "战斗 UI"
+        },
+        {
+          "path": "Assets/_Project/Scripts/Combat/CombatVFXManager.cs",
+          "label": "VFX 订阅"
+        },
+        {
+          "path": "Assets/_Project/Scripts/Combat/CombatAudioManager.cs",
+          "label": "音频订阅"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "player-command",
+      "from": "controls",
+      "to": "combat",
+      "label": "战术命令",
+      "variant": "emphasis"
+    },
+    {
+      "id": "invoke-rules",
+      "from": "combat",
+      "to": "rules",
+      "label": "调用规则服务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "round-events",
+      "from": "rules",
+      "to": "events",
+      "label": "发布回合事件",
+      "variant": "emphasis",
+      "labelAt": [
+        779,
+        344
+      ]
+    },
+    {
+      "id": "event-feedback",
+      "from": "events",
+      "to": "presentation",
+      "label": "订阅事件反馈",
+      "variant": "emphasis"
+    },
+    {
+      "id": "encounter-callback",
+      "from": "exploration",
+      "to": "bootstrap",
+      "label": "遭遇回调"
+    },
+    {
+      "id": "assemble-combat",
+      "from": "bootstrap",
+      "to": "combat",
+      "label": "装配战斗系统",
+      "labelAt": [
+        389,
+        164
+      ]
+    },
+    {
+      "id": "load-definitions",
+      "from": "definitions",
+      "to": "rules",
+      "label": "读取定义资产",
+      "variant": "dashed",
+      "labelAt": [
+        649,
+        164
+      ]
+    },
+    {
+      "id": "ai-shared-services",
+      "from": "ai",
+      "to": "rules",
+      "label": "共用行动与技能"
+    },
+    {
+      "id": "modify-runtime",
+      "from": "rules",
+      "to": "units",
+      "label": "更新 HP / AP",
+      "labelAt": [
+        649,
+        344
+      ]
+    },
+    {
+      "id": "query-grid",
+      "from": "rules",
+      "to": "grid",
+      "label": "查询网格与地表"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "职责与数据",
+      "items": [
+        "MonoBehaviour 绑定场景；纯 C# 服务承载规则与状态",
+        "ScriptableObject 保存单位、技能、状态和地表定义",
+        "AP 池驱动行动；移动按格子、技能按 ApCost 消耗"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "调用与反馈",
+      "items": [
+        "TurnManager 直接发布回合事件",
+        "AbilityExecutor 返回结果；控制器 / AI 发布伤害等事件",
+        "EventBus 同步通知 UI、VFX 和音频；不是异步队列"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "范围与版本",
+      "items": [
+        "聚焦探索 → 战斗运行时；省略开场故事与编辑器工具",
+        "基于 main 提交 42f3a2b；SRC 链接固定到该版本",
+        "架构调整后需更新 JSON 并重新生成、验证 HTML"
+      ]
+    }
+  ]
+}
