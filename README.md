@@ -8,17 +8,51 @@ A vertical-slice turn-based tactical RPG built with Unity 6, inspired by Divinit
 
 ## Interactive Architecture / 交互架构图
 
-Explore the runtime systems, shared combat rules, and source references in the Archify viewer.
+Explore runtime systems and source references. Choose a language to open the interactive viewer.
 
-通过 Archify 查看运行时系统、共用战斗规则和对应源码。架构证据固定到 `main` 提交 `42f3a2b`。
+查看运行时系统与对应源码；点击下方入口选择中文或英文完整交互图。
 
-[![Hex Tactics runtime architecture](Docs/Architecture_Preview.png)](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/)
+| English | 中文 |
+|---|---|
+| [**▶ Open interactive architecture**](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/en.html) | [**▶ 打开交互架构图**](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/) |
 
-[Open the published viewer / 打开在线交互图](https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/) · [HTML for local review / 本地验收 HTML](site/index.html) · [Editable diagram / 可编辑图源](Docs/Architecture_Main_Archify.json)
+<a href="https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/en.html">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/Architecture_Preview_EN_Dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="Docs/Architecture_Preview_EN.png">
+    <img alt="Hex Tactics runtime architecture — click to open the English interactive viewer" src="Docs/Architecture_Preview_EN.png">
+  </picture>
+</a>
 
-The public link becomes available after this branch is merged and GitHub Pages is enabled. During review, download the branch workflow's `architecture-site-preview` artifact or open `site/index.html` locally. See [publishing and update instructions](Docs/Architecture_Publishing.md).
+<details>
+<summary>中文预览 / Chinese preview</summary>
 
-在线链接在分支合并并启用 Pages 后可用；验收期间可下载工作流中的 `architecture-site-preview` 网页包，或在本地打开 HTML。
+<a href="https://bibi45c.github.io/UEA-CMP-SEM2-GAME-Turn_Based_Strategy/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Docs/Architecture_Preview_Dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="Docs/Architecture_Preview.png">
+    <img alt="Hex Tactics 运行时架构 — 点击打开中文交互图" src="Docs/Architecture_Preview.png">
+  </picture>
+</a>
+
+</details>
+
+<details>
+<summary>Review locally, source & publishing / 本地验收、图源与发布</summary>
+
+- Local HTML / 本地 HTML: [English](site/en.html) · [中文](site/index.html). Download the HTML before opening it in a browser; GitHub's file view shows source, not the interactive viewer.
+- Editable JSON / 可编辑图源: [English](Docs/Architecture_Main_Archify_EN.json) · [中文](Docs/Architecture_Main_Archify.json).
+- Both languages describe the same architecture at `main` commit `42f3a2b`; source links are pinned to that revision.
+- 两版架构事实一致，源码证据固定到 `main` 提交 `42f3a2b`。
+- Online links become available after merge and Pages activation. During branch review, download and unzip the CI `architecture-site-preview` artifact, then open `index.html` or `en.html` locally.
+- 在线链接在合并并启用 Pages 后可用；验收期间下载、解压 CI 网页包即可查看两版。
+- [Publishing and update instructions / 发布与更新说明](Docs/Architecture_Publishing.md).
+
+README previews follow GitHub's light/dark theme. The preview is a clickable static image; search, node selection and export run in the standalone viewer, not inside README.
+
+README 预览随 GitHub 深浅主题切换；图片可点击，但搜索、节点交互和导出需要进入独立页面。
+
+</details>
 
 ---
 

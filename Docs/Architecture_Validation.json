@@ -15,6 +15,10 @@
     "path": "Docs/Architecture_Preview.png",
     "sha256": "fce085493fad19250ee42a5f00c178c8bd3491062b4243730cc73daecb590f07"
   },
+  "dark_preview": {
+    "path": "Docs/Architecture_Preview_Dark.png",
+    "sha256": "9e4b5e897ffbe1a42425fa6b1c7eb7bcc62f327021e97f513fc16bd76c33e6dc"
+  },
   "validation": {
     "checksPassed": 9,
     "checkCount": 9,

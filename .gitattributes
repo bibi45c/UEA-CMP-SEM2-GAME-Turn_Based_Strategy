@@ -1,4 +1,6 @@
 # Keep generated artifact bytes identical to their accepted SHA-256 receipts.
 Docs/Architecture_Main_Archify.json -text
-Docs/Architecture_Preview.png -text
+Docs/Architecture_Main_Archify_EN.json -text
+Docs/Architecture_Preview*.png -text
 site/index.html -text
+site/en.html -text

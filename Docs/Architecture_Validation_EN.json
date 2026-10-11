@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "generator": "Archify 2.17.0-dev.1",
+  "diagram_type": "architecture",
+  "revision": "42f3a2b8d6bc3e4b847abec1f34cae841fda204d",
+  "specification": { "sha256": "28c9a2dfc4a7331d1996141fc3a28ee83d939eeceeeb5b6d162924b45eca4054", "bytes": 8293 },
+  "artifact": { "sha256": "60f7cf49bd77fb530e9d87d550d12cb5b61d16dc87a62989694c372ac09d1e2a", "bytes": 821582 },
+  "preview": { "path": "Docs/Architecture_Preview_EN.png", "sha256": "85a768e580fde30fb55adc1d3d3dff0b0dc93a3079fc74facf3c20b9e2cdeec9" },
+  "dark_preview": { "path": "Docs/Architecture_Preview_EN_Dark.png", "sha256": "2f529703847f78170c4c68a4d07dc6e784d6de16b29ebf32c4b494c6297696bb" },
+  "validation": { "checksPassed": 9, "checkCount": 9, "compositionProfile": "showcase", "compositionStatus": "pass", "errors": 0, "warnings": 0 },
+  "repository_evidence": { "verified": true, "references": 28 },
+  "browser_evidence": "passed",
+  "visual_review": "passed",
+  "correction_rounds": 2,
+  "viewports": [[1440, 900], [1600, 1000], [1920, 1080], [2048, 1320]],
+  "themes": ["light", "dark"],
+  "visual_review_scope": "Reviewed light 1440x900 and dark 2048x1320 captures; automated containment passed at all four desktop sizes, with both endpoint themes captured.",
+  "checked_on": "2026-10-11"
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Hex Tactics — Runtime Architecture",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/bibi45c/UEA-CMP-SEM2-GAME-Turn_Based_Strategy",
+      "revision": "42f3a2b8d6bc3e4b847abec1f34cae841fda204d"
+    },
+    "legend": { "entries": {
+      "frontend": { "label": "Input & presentation" },
+      "backend": { "label": "Game systems" },
+      "database": { "label": "Definitions" },
+      "messagebus": { "label": "Event bus" }
+    } },
+    "views": [
+      { "id": "combat-path", "label": "Player combat", "focus": ["controls", "combat", "rules", "events", "presentation"], "note": "The controller calls shared rules; turn and combat events drive feedback." },
+      { "id": "scene-phases", "label": "Exploration to combat", "focus": ["exploration", "bootstrap", "combat"], "note": "Exploration invokes the GameBootstrap encounter callback, which assembles combat systems." },
+      { "id": "shared-rules", "label": "Data & tactical rules", "focus": ["definitions", "ai", "rules", "grid", "units"], "note": "Players and AI share AP, abilities, grid queries and unit state." }
+    ]
+  },
+  "layout": { "mode": "grid", "origin": [44, 80], "cols": 5, "gapX": 90, "gapY": 104, "cellW": 170, "cellH": 76 },
+  "components": [
+    { "id": "controls", "type": "frontend", "label": "Player input & HUD", "sublabel": "Select, move, cast, end turn", "row": 1, "col": 0, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Units/TacticalInputHandler.cs", "label": "Tactical input", "line": 10 },
+      { "path": "Assets/_Project/Scripts/UI/ActionBar.cs", "label": "Action bar", "line": 10 }
+    ] },
+    { "id": "exploration", "type": "backend", "label": "Exploration", "sublabel": "Movement, party, encounters", "row": 0, "col": 0, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Exploration/ExplorationController.cs", "label": "Encounter detection", "line": 111 },
+      { "path": "Assets/_Project/Scripts/Exploration/PartyFollower.cs", "label": "Party following" }
+    ] },
+    { "id": "bootstrap", "type": "backend", "label": "GameBootstrap", "sublabel": "Scene entry & system setup", "row": 0, "col": 1, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Core/GameBootstrap.cs", "label": "Scene assembly", "line": 28 },
+      { "path": "Assets/_Project/Scripts/Core/GameSession.cs", "label": "Session state" }
+    ] },
+    { "id": "combat", "type": "backend", "label": "CombatSceneController", "sublabel": "Combat lifecycle & services", "row": 1, "col": 1, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Combat/CombatSceneController.cs", "label": "Dependency assembly", "line": 69 },
+      { "path": "Assets/_Project/Scripts/Combat/CombatSceneController.cs", "label": "Ability result events", "line": 233 }
+    ] },
+    { "id": "rules", "type": "backend", "label": "Combat services", "sublabel": "Turns, AP, abilities & effects", "row": 1, "col": 2, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Combat/TurnManager.cs", "label": "Turn rules", "line": 18 },
+      { "path": "Assets/_Project/Scripts/Combat/ActionSystem.cs", "label": "AP economy", "line": 13 },
+      { "path": "Assets/_Project/Scripts/Abilities/AbilityExecutor.cs", "label": "Ability execution", "line": 13 }
+    ] },
+    { "id": "definitions", "type": "database", "label": "ScriptableObject", "sublabel": "Unit, ability, status, surface", "row": 0, "col": 2, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Units/UnitDefinition.cs", "label": "Unit definitions" },
+      { "path": "Assets/_Project/Scripts/Abilities/AbilityDefinition.cs", "label": "Ability definitions" },
+      { "path": "Assets/_Project/Scripts/Grid/SurfaceDefinition.cs", "label": "Surface definitions" }
+    ] },
+    { "id": "ai", "type": "backend", "label": "Enemy AI", "sublabel": "Scoring, movement & abilities", "row": 0, "col": 3, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/AI/AIBrain.cs", "label": "AI execution", "line": 17 },
+      { "path": "Assets/_Project/Scripts/AI/AIScorer.cs", "label": "Target scoring", "line": 12 }
+    ] },
+    { "id": "units", "type": "backend", "label": "Unit runtime state", "sublabel": "Stats, HP/AP, faction & position", "row": 2, "col": 2, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Units/UnitRuntime.cs", "label": "Unit state", "line": 11 },
+      { "path": "Assets/_Project/Scripts/Units/UnitStats.cs", "label": "Stat aggregation", "line": 10 },
+      { "path": "Assets/_Project/Scripts/Units/UnitRegistry.cs", "label": "Unit registry", "line": 11 }
+    ] },
+    { "id": "grid", "type": "backend", "label": "Hex tactical world", "sublabel": "Grid, paths, cover & surfaces", "row": 2, "col": 1, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Grid/HexGridMap.cs", "label": "Grid data", "line": 11 },
+      { "path": "Assets/_Project/Scripts/Grid/HexPathfinder.cs", "label": "A* pathfinding", "line": 11 },
+      { "path": "Assets/_Project/Scripts/Grid/SurfaceSystem.cs", "label": "Surface reactions", "line": 13 }
+    ] },
+    { "id": "events", "type": "messagebus", "label": "EventBus", "sublabel": "Synchronous in-process dispatch", "row": 1, "col": 3, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/Core/EventBus.cs", "label": "Synchronous event bus", "line": 13 },
+      { "path": "Assets/_Project/Scripts/Combat/CombatEvents.cs", "label": "Combat events" },
+      { "path": "Assets/_Project/Scripts/Units/UnitEvents.cs", "label": "Unit events" }
+    ] },
+    { "id": "presentation", "type": "frontend", "label": "Presentation", "sublabel": "Combat UI, VFX, audio & camera", "row": 1, "col": 4, "size": [170, 70], "sources": [
+      { "path": "Assets/_Project/Scripts/UI/CombatUIManager.cs", "label": "Combat UI" },
+      { "path": "Assets/_Project/Scripts/Combat/CombatVFXManager.cs", "label": "VFX subscribers" },
+      { "path": "Assets/_Project/Scripts/Combat/CombatAudioManager.cs", "label": "Audio subscribers" }
+    ] }
+  ],
+  "connections": [
+    { "id": "player-command", "from": "controls", "to": "combat", "label": "Commands", "variant": "emphasis" },
+    { "id": "invoke-rules", "from": "combat", "to": "rules", "label": "Call rules", "variant": "emphasis" },
+    { "id": "round-events", "from": "rules", "to": "events", "label": "Turn events", "variant": "emphasis", "labelAt": [779, 344] },
+    { "id": "event-feedback", "from": "events", "to": "presentation", "label": "Subscribers", "variant": "emphasis" },
+    { "id": "encounter-callback", "from": "exploration", "to": "bootstrap", "label": "Encounter callback", "labelAt": [259, 164] },
+    { "id": "assemble-combat", "from": "bootstrap", "to": "combat", "label": "Set up combat", "labelAt": [389, 164] },
+    { "id": "load-definitions", "from": "definitions", "to": "rules", "label": "Read definitions", "variant": "dashed", "labelAt": [649, 164] },
+    { "id": "ai-shared-services", "from": "ai", "to": "rules", "label": "Shared actions & abilities" },
+    { "id": "modify-runtime", "from": "rules", "to": "units", "label": "Update HP / AP", "labelAt": [649, 344] },
+    { "id": "query-grid", "from": "rules", "to": "grid", "label": "Grid & surface queries" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Responsibilities & data", "items": [
+      "MonoBehaviour binds scenes; plain C# owns rules and state",
+      "ScriptableObject defines units, abilities, statuses and surfaces",
+      "AP pool: movement costs per cell; abilities consume ApCost"
+    ] },
+    { "dot": "emerald", "title": "Calls & feedback", "items": [
+      "TurnManager publishes turn events directly",
+      "AbilityExecutor returns results; controller / AI publish damage events",
+      "EventBus synchronously notifies UI, VFX and audio; not an async queue"
+    ] },
+    { "dot": "amber", "title": "Scope & revision", "items": [
+      "Exploration and combat runtime; intro story and editor tools omitted",
+      "Based on main 42f3a2b; SRC links are pinned to that revision",
+      "After architecture changes, update JSON, regenerate and validate HTML"
+    ] }
+  ]
+}
